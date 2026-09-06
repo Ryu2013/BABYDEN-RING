@@ -405,73 +405,78 @@ body {
   text-shadow: 0 2px 6px #000;
 }
 
-.player-info { margin-top: auto; }
-
-.hp-bar {
-  width: 100%;
-  max-width: 420px;
-  height: 13px;
-  border: 1px solid #000;
-  outline: 1px solid rgba(200, 163, 73, 0.25);
-  background: #24080a;
-  overflow: hidden;
+.player-info {
+  margin-top: auto;
+  align-items: flex-start;
 }
 
-.player-hp-bar { background: #06231c; align-self: flex-start; }
+/* ゲージ。金の細枠＋内側の落ち影で、板に嵌まっているように見せる */
+.hp-bar {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 15px;
+  padding: 2px;
+  background: #100c07;
+  border: 1px solid rgba(200, 163, 73, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.95),
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* 枠の左右に小さな金の留め具を置く */
+.hp-bar::before,
+.hp-bar::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 9px;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold-dim));
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+}
+.hp-bar::before { left: -3px; }
+.hp-bar::after { right: -3px; }
 
 .hp-fill {
   height: 100%;
   width: 100%;
-  background: linear-gradient(180deg, #c8453a, #7d1f1a);
+  background: linear-gradient(180deg, #d8564a, #7d1f1a 55%, #56100d);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
   transition: width 0.15s linear;
 }
 
-.player-hp-bar .hp-fill { background: linear-gradient(180deg, #e8e0c8, #92a08a); }
+.player-hp-bar { background: #0a1210; }
+.player-hp-bar .hp-fill {
+  background: linear-gradient(180deg, #f2ead2, #b8b49a 55%, #7d8570);
+}
 
-.stamina-bar { height: 8px; max-width: 320px; background: #241f0c; }
+.stamina-bar { height: 10px; max-width: 320px; background: #141005; }
 .stamina-bar .hp-fill {
-  background: linear-gradient(180deg, #d8c24a, #8a7522);
+  background: linear-gradient(180deg, #e6d05a, #97801f 55%, #6a5813);
   transition: width 0.08s linear;
 }
 /* スタミナ切れを分かるようにする */
-.stamina-bar.empty .hp-fill { background: linear-gradient(180deg, #a04040, #5d2020); }
-
-/* 体幹ゲージ。0になると体勢を崩す */
-.poise-bar {
-  width: 100%;
-  max-width: 320px;
-  height: 6px;
-  border: 1px solid #000;
-  outline: 1px solid rgba(200, 163, 73, 0.18);
-  overflow: hidden;
-  background: #14171f;
-}
-.boss-poise-bar { max-width: 420px; }
-.poise-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(180deg, #b9cdf0, #6d84ad);
-  transition: width 0.12s linear;
-}
-.poise-bar.broken { outline-color: #ffe680; animation: poise-flash 0.4s linear infinite; }
-.poise-bar.broken .poise-fill { background: linear-gradient(180deg, #ffe07a, #c69a20); }
-
-@keyframes poise-flash {
-  0%, 100% { box-shadow: 0 0 0 rgba(255, 230, 128, 0); }
-  50% { box-shadow: 0 0 10px rgba(255, 230, 128, 0.9); }
+.stamina-bar.empty .hp-fill {
+  background: linear-gradient(180deg, #b04a4a, #6a2020 55%, #4a1414);
 }
 
 /* エスト瓶の残量 */
-.flask-row { display: flex; gap: 5px; margin-top: 2px; }
+.flask-row { display: flex; gap: 5px; margin-bottom: 3px; }
 .flask {
-  width: 9px;
-  height: 13px;
-  background: linear-gradient(180deg, #9dffb0, #2f7a48);
-  border: 1px solid rgba(0, 0, 0, 0.8);
-  outline: 1px solid rgba(200, 163, 73, 0.3);
+  width: 10px;
+  height: 14px;
+  background: linear-gradient(180deg, #b6ffc6, #2f7a48);
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  box-shadow: 0 0 0 1px rgba(200, 163, 73, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   clip-path: polygon(30% 0, 70% 0, 70% 26%, 100% 55%, 100% 100%, 0 100%, 0 55%, 30% 26%);
 }
-.flask.spent { background: rgba(255, 255, 255, 0.12); }
+.flask.spent {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(200, 163, 73, 0.22);
+}
 
 .timer {
   align-self: center;
@@ -648,21 +653,19 @@ body {
   /* キーボードの案内は不要 */
   #controls-help, .hint { display: none; }
 
-  /* 画面下はボタンの領域。HUDは全部上に寄せる */
-  #hud {
-    justify-content: flex-start;
-    padding: 8px 12px;
-    gap: 3px;
+  /* 左右の隅はボタンの領域なので、自分のゲージは下の中央に置く */
+  #hud { padding: 8px 12px calc(14px + env(safe-area-inset-bottom)); gap: 3px; }
+  .player-info {
+    align-self: center;
+    align-items: center;
+    max-width: 300px;
   }
-  .player-info { margin-top: 8px; }
-  .timer { order: 3; margin-top: 2px; font-size: 17px; }
+  .timer { font-size: 17px; }
   #boss-name { font-size: 11px; }
-  .hp-bar { height: 10px; max-width: 46%; }
-  .boss-hp-bar { max-width: 100%; }
-  .stamina-bar { height: 7px; max-width: 38%; }
-  .poise-bar { height: 5px; max-width: 38%; }
-  .boss-poise-bar { max-width: 100%; }
-  .flask { width: 8px; height: 11px; }
+  .hp-bar { height: 12px; }
+  .stamina-bar { height: 8px; max-width: 240px; }
+  .player-hp-bar { max-width: 280px; }
+  .flask { width: 8px; height: 12px; }
 }
 
 /* 横持ち。ウィンドウいっぱいを使い、キャンバスだけを内側で letterbox する */

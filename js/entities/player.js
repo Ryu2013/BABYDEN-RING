@@ -64,7 +64,6 @@ export class Player {
     this.isDead = false;
 
     this.parryFrames = 0;
-    this.canChargeThisPress = false;
     this.chargeFrames = 0;
     this.chargeLevel = 0;
     this.parryFlash = 0;
@@ -106,6 +105,7 @@ export class Player {
     switch (this.state) {
       case 'idle':
       case 'walk':
+      case 'jump':
       case 'attackHold':
       case 'heavyCharge':
         return true;
@@ -160,6 +160,13 @@ export class Player {
   }
 
   _releaseCharge() {
+    // スタミナは放つ瞬間に払う。押した時点では足りていなくてもよい
+    // （溜めている間に回復するので「溜められない」状況が起きない）
+    if (!this._spendStamina(this.timings.heavyAttack.stamina)) {
+      if (this._spendStamina(this.timings.lightAttack.stamina)) this._enterState('lightAttack');
+      else this._enterState('idle');
+      return;
+    }
     let level = this._levelForFrames(this.chargeFrames);
     // 溜めきってもスタミナが足りなければ、払える段階まで落として撃つ
     while (level > 0 && this.stamina < CHARGE_LEVELS[level].extraStamina) level--;
@@ -209,28 +216,32 @@ export class Player {
       return;
     }
 
-    if (this.onGround && this._acceptsAction()) {
-      if (input.consumeBuffered('roll') && this._spendStamina(this.timings.roll.stamina)) {
-        this._faceHeldDirection(input);
-        this._enterState('roll');
-      } else if (input.consumeBuffered('attack')) {
-        // 押した瞬間にパリィ受付が開く。離すのが早ければ弱、押し続ければ強の溜め
-        this._faceHeldDirection(input);
-        if (this.stamina >= this.timings.lightAttack.stamina) {
+    if (this._acceptsAction()) {
+      if (this.onGround) {
+        if (input.consumeBuffered('roll') && this._spendStamina(this.timings.roll.stamina)) {
+          this._faceHeldDirection(input);
+          this._enterState('roll');
+        } else if (input.consumeBuffered('attack')) {
+          // 押した瞬間にパリィ受付が開く。離すのが早ければ弱、押し続ければ強の溜め
+          this._faceHeldDirection(input);
           this.parryFrames = PARRY_WINDOW;
+          this._enterState('attackHold');
+        } else if (input.consumeBuffered('heal') && this.flasks > 0
+          && this._spendStamina(FLASK.stamina)) {
+          this.flasks--;
+          this._enterState('heal');
+          this._emit('healStart');
+        } else if (this.state !== 'attackHold' && input.consumeBuffered('jump')) {
+          this._faceHeldDirection(input);
+          this.vy = this.char.jumpVelocity;
+          this.onGround = false;
+          this._enterState('jump');
         }
-        this.canChargeThisPress = this.stamina >= this.timings.heavyAttack.stamina;
-        this._enterState('attackHold');
-      } else if (input.consumeBuffered('heal') && this.flasks > 0
-        && this._spendStamina(FLASK.stamina)) {
-        this.flasks--;
-        this._enterState('heal');
-        this._emit('healStart');
-      } else if (this.state !== 'attackHold' && input.consumeBuffered('jump')) {
+      } else if (input.consumeBuffered('attack')) {
+        // 空中では溜められないが、弱攻撃は出せる（飛び込み斬り）
         this._faceHeldDirection(input);
-        this.vy = this.char.jumpVelocity;
-        this.onGround = false;
-        this._enterState('jump');
+        this.parryFrames = PARRY_WINDOW;
+        if (this._spendStamina(this.timings.lightAttack.stamina)) this._enterState('lightAttack');
       }
     }
 
@@ -278,14 +289,10 @@ export class Player {
         if (!held) {
           if (this._spendStamina(this.timings.lightAttack.stamina)) this._enterState('lightAttack');
           else this._enterState('idle');
-        } else if (this.frame >= ATTACK_HOLD_FRAMES && this.canChargeThisPress) {
-          if (this._spendStamina(this.timings.heavyAttack.stamina)) {
-            this.chargeFrames = 0;
-            this.chargeLevel = 0;
-            this._enterState('heavyCharge');
-          } else {
-            this.canChargeThisPress = false;
-          }
+        } else if (this.frame >= ATTACK_HOLD_FRAMES) {
+          this.chargeFrames = 0;
+          this.chargeLevel = 0;
+          this._enterState('heavyCharge');
         }
         break;
       }
@@ -307,9 +314,12 @@ export class Player {
       case 'heavyAttack': {
         const t = this.timings[this.state];
         const localFrame = this.frame - t.startup;
-        // 攻撃の出際に少しだけ前に踏み込む（弓は踏み込まない）
-        const step = t.projectile ? 0 : 2.4;
-        this.vx = localFrame >= 0 && localFrame < t.active ? this.facing * step : 0;
+        // 攻撃の出際に少しだけ前に踏み込む（弓は踏み込まない）。
+        // 空中では横の勢いをそのまま残す
+        if (this.onGround) {
+          const step = t.projectile ? 0 : 2.4;
+          this.vx = localFrame >= 0 && localFrame < t.active ? this.facing * step : 0;
+        }
         // 弓はactiveの頭で矢を放つ。以降は当たり判定を持たない
         if (t.projectile && localFrame === 0 && !this.hasHitThisAction) {
           this.hasHitThisAction = true;
@@ -318,7 +328,7 @@ export class Player {
         if (this.frame >= totalFrames(t)) {
           if (!this.hasHitThisAction) this.notifyWhiff(this.state);
           // 空振りで体幹が尽きたときは idle で上書きせず、そのまま崩れる
-          if (!this.isStaggered) this._enterState('idle');
+          if (!this.isStaggered) this._enterState(this.onGround ? 'idle' : 'jump');
         }
         break;
       }

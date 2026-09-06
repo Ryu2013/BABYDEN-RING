@@ -98,13 +98,9 @@ class Game {
     this.ui.updateHud({
       playerHpRatio: player.hp / player.maxHp,
       playerStaminaRatio: player.stamina / player.maxStamina,
-      playerPoiseRatio: player.poise / player.maxPoise,
-      playerStaggered: player.isStaggered,
       flasks: player.flasks,
       maxFlasks: player.maxFlasks,
       bossHpRatio: boss.hp / boss.maxHp,
-      bossPoiseRatio: boss.poise / boss.maxPoise,
-      bossStaggered: boss.isStaggered,
       elapsedMs: this.timer.getElapsedMs(),
     });
 

@@ -195,7 +195,10 @@ export class Boss {
             this._moveToward(player, hustle);
           }
         }
-        if (this.frame >= this.form.cooldownFrames) {
+        const wait = this._forcedNext
+          ? (this.form.chainCooldown ?? 6)
+          : this.form.cooldownFrames;
+        if (this.frame >= wait) {
           this._pickPattern(player);
           this.stepIndex = 0;
           this.phase = Phase.WINDUP;
@@ -251,7 +254,8 @@ export class Boss {
       case Phase.RECOVERY: {
         if (this.frame >= (this.currentPattern.recoveryFrames || 24)) {
           // 「投げてから一気に詰める」のような繋ぎを仕込む
-          if (this.currentPattern.followUp && Math.random() < 0.85) {
+          if (this.currentPattern.followUp
+              && Math.random() < (this.currentPattern.followUpChance ?? 0.85)) {
             this._forcedNext = this.currentPattern.followUp;
           }
           this.phase = Phase.COOLDOWN;
@@ -276,10 +280,13 @@ export class Boss {
     const poiseRatio = this.poise / this.maxPoise;
 
     // 直前の攻撃から繋ぐことが決まっていればそれを最優先する
-    if (this._forcedNext && this.patterns[this._forcedNext]) {
-      this.currentPattern = this.patterns[this._forcedNext];
+    if (this._forcedNext) {
+      const next = this.form.pool.includes(this._forcedNext) ? this.patterns[this._forcedNext] : null;
       this._forcedNext = null;
-      return;
+      if (next) {
+        this.currentPattern = next;
+        return;
+      }
     }
 
     const dodge = this.patterns[this.form.dodgePattern || 'backstep'];

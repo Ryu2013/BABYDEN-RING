@@ -20,13 +20,9 @@ export function createUI({ onGoToSelect, onStartFight, onRetryFight, onBackToTit
   const hud = document.getElementById('hud');
   const bossName = document.getElementById('boss-name');
   const bossHpFill = document.getElementById('boss-hp-fill');
-  const bossPoiseFill = document.getElementById('boss-poise-fill');
-  const bossPoiseBar = bossPoiseFill.parentElement;
   const playerHpFill = document.getElementById('player-hp-fill');
   const staminaFill = document.getElementById('player-stamina-fill');
   const staminaBar = staminaFill.parentElement;
-  const playerPoiseFill = document.getElementById('player-poise-fill');
-  const playerPoiseBar = playerPoiseFill.parentElement;
   const flaskRow = document.getElementById('flask-row');
   const timerDisplay = document.getElementById('timer-display');
 
@@ -138,18 +134,13 @@ export function createUI({ onGoToSelect, onStartFight, onRetryFight, onBackToTit
       bossName.textContent = name;
     },
 
-    updateHud({
-      playerHpRatio, playerStaminaRatio, playerPoiseRatio, playerStaggered,
-      bossHpRatio, bossPoiseRatio, bossStaggered, elapsedMs, flasks, maxFlasks,
-    }) {
+    // 体幹は内部の数値としてだけ持ち、ゲージは出さない。
+    // 崩れたことは星と「体幹崩し！」の演出で伝える
+    updateHud({ playerHpRatio, playerStaminaRatio, bossHpRatio, elapsedMs, flasks, maxFlasks }) {
       playerHpFill.style.width = `${Math.max(0, playerHpRatio * 100)}%`;
       staminaFill.style.width = `${Math.max(0, playerStaminaRatio * 100)}%`;
       staminaBar.classList.toggle('empty', playerStaminaRatio < 0.2);
-      playerPoiseFill.style.width = `${Math.max(0, playerPoiseRatio * 100)}%`;
-      playerPoiseBar.classList.toggle('broken', playerStaggered);
       bossHpFill.style.width = `${Math.max(0, bossHpRatio * 100)}%`;
-      bossPoiseFill.style.width = `${Math.max(0, bossPoiseRatio * 100)}%`;
-      bossPoiseBar.classList.toggle('broken', bossStaggered);
       timerDisplay.textContent = formatMs(elapsedMs);
 
       // エスト瓶の残り。変化したときだけ描き直す

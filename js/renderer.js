@@ -73,10 +73,8 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
     return;
   }
 
-  drawTelegraph(ctx, boss, groundY);
   drawBoss(ctx, boss, groundY);
   drawPlayer(ctx, player, groundY);
-  drawImpact(ctx, boss);
   if (projectiles) for (const p of projectiles) drawProjectile(ctx, p);
   if (effects) drawEffects(ctx, effects);
 
@@ -90,57 +88,6 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
     if (projectiles) for (const p of projectiles) drawBox(ctx, p.getBox(), 'rgba(255,255,0,0.9)');
   }
 
-  ctx.restore();
-}
-
-// 攻撃の予告。危険範囲を足元に表示し、満ちきったタイミングで攻撃が出る
-function drawTelegraph(ctx, boss, groundY) {
-  if (!boss.isTelegraphing()) return;
-  const box = boss.getTelegraphBox();
-  if (!box) return;
-  const step = boss.currentStep();
-  const unblockable = !!step.unblockable;
-  const progress = boss.getTelegraphProgress();
-
-  // ガード不可攻撃は黄色。「これはガードでは止まらない」と一目で分かるようにする
-  const rgb = unblockable ? '255,190,40' : '255,40,40';
-  ctx.save();
-
-  const top = Math.min(groundY - 90, box.y);
-  const glow = ctx.createLinearGradient(0, top, 0, groundY + 14);
-  glow.addColorStop(0, `rgba(${rgb},0)`);
-  glow.addColorStop(1, `rgba(${rgb},${0.10 + 0.24 * progress})`);
-  ctx.fillStyle = glow;
-  ctx.fillRect(box.x, top, box.w, groundY + 14 - top);
-
-  // 満ちていくバーで発生タイミングを示す
-  ctx.fillStyle = `rgba(${rgb},0.22)`;
-  ctx.fillRect(box.x, groundY + 2, box.w, 10);
-  ctx.fillStyle = unblockable
-    ? `rgba(255,${Math.round(220 - 90 * progress)},60,0.95)`
-    : `rgba(255,${Math.round(200 - 160 * progress)},60,0.95)`;
-  ctx.fillRect(box.x, groundY + 2, box.w * progress, 10);
-
-  ctx.strokeStyle = `rgba(${rgb},${0.4 + 0.45 * progress})`;
-  ctx.lineWidth = unblockable ? 3 : 2;
-  if (unblockable) ctx.setLineDash([10, 6]);
-  ctx.strokeRect(box.x, groundY + 2, box.w, 10);
-  ctx.restore();
-}
-
-// 攻撃発生の瞬間の斬撃エフェクト
-function drawImpact(ctx, boss) {
-  const hit = boss.getActiveHitbox();
-  if (!hit) return;
-  const step = boss.currentStep();
-  const life = 1 - boss.frame / step.active;
-  const rgb = hit.unblockable ? '255,180,50' : '255,70,50';
-  ctx.save();
-  ctx.fillStyle = `rgba(${rgb},${0.22 + 0.32 * life})`;
-  ctx.fillRect(hit.x, hit.y, hit.w, hit.h);
-  ctx.strokeStyle = `rgba(255,240,220,${0.8 * life})`;
-  ctx.lineWidth = 4;
-  ctx.strokeRect(hit.x, hit.y, hit.w, hit.h);
   ctx.restore();
 }
 
