@@ -12,6 +12,7 @@ const DOLL_PATTERNS = {
 
   // ディレイ振り下ろし。溜めが長く、早漏ロールを狩る
   delaySwing: {
+    windupSprite: 'overhead',
     weight: 1.5,
     recoveryFrames: 36,
     hold: true,
@@ -41,6 +42,8 @@ const DOLL_PATTERNS = {
 
   // 遠距離。ガラガラを投げてくる。ジャンプかロールで抜ける
   rattleThrow: {
+    windupSprite: 'throw',
+    followUp: 'lunge',
     weight: 1.5,
     recoveryFrames: 30,
     longRange: true,
@@ -52,6 +55,7 @@ const DOLL_PATTERNS = {
 
   // 足払い。低い判定なのでジャンプで跨ぐ
   lowSweep: {
+    windupSprite: 'low',
     weight: 1.3,
     recoveryFrames: 30,
     steps: [{ windup: 30, active: 9, damage: 20, hitbox: { w: 210, h: 40, offsetX: 10, offsetY: 50 } }],
@@ -59,6 +63,7 @@ const DOLL_PATTERNS = {
 
   // ガード不可のおしり落とし。ロールでしか躱せない
   hipDrop: {
+    windupSprite: 'overhead',
     weight: 1.1,
     recoveryFrames: 46,
     unblockableTelegraph: true,
@@ -70,6 +75,7 @@ const DOLL_PATTERNS = {
 
   // よちよち突進。相手側にロールして抜けるのが正解
   lunge: {
+    windupSprite: 'dash',
     weight: 1.4,
     recoveryFrames: 40,
     longRange: true,
@@ -78,6 +84,7 @@ const DOLL_PATTERNS = {
 
   // 回避行動。攻撃せず後ろに跳ぶ
   backstep: {
+    windupSprite: 'dash',
     weight: 0.7,
     recoveryFrames: 12,
     steps: [{ windup: 8, active: 12, move: 'away', moveSpeed: 7.5 }],
@@ -85,6 +92,7 @@ const DOLL_PATTERNS = {
 
   // 第二形態の泣き叫び。広範囲・ガード不可
   wail: {
+    windupSprite: 'scream',
     weight: 1.3,
     recoveryFrames: 48,
     unblockableTelegraph: true,
@@ -118,9 +126,10 @@ export const STAGES = [
     forms: [
       {
         name: 'よちよちドール',
-        maxHp: 150,
+        maxHp: 200,
         maxPoise: 14,
         moveSpeed: 1.9,
+        dashSpeed: 4.6,
         preferredRange: 112,
         cooldownFrames: 32,
         damageScale: 1,
@@ -128,10 +137,16 @@ export const STAGES = [
         pool: ['swing', 'delaySwing', 'combo2', 'rattleThrow', 'lowSweep', 'lunge', 'backstep'],
       },
       {
+        // 第二形態は絵も大きさも別物にする
         name: 'ひび割れドール',
-        maxHp: 200,
+        sprite: 'boss1b',
+        spriteScale: 1.85,
+        width: 112,
+        height: 168,
+        maxHp: 280,
         maxPoise: 18,
         moveSpeed: 2.7,
+        dashSpeed: 6.2,
         preferredRange: 104,
         cooldownFrames: 20,
         damageScale: 1.3,
@@ -153,6 +168,7 @@ export const STAGES = [
         steps: [{ windup: 36, active: 10, damage: 28, hitbox: { w: 120, h: 80, offsetX: 42, offsetY: 0 } }],
       },
       lunge: {
+        windupSprite: 'dash',
         weight: 1,
         recoveryFrames: 42,
         longRange: true,
@@ -170,6 +186,7 @@ export const STAGES = [
         maxHp: 210,
         maxPoise: 16,
         moveSpeed: 2.4,
+        dashSpeed: 5.2,
         preferredRange: 108,
         cooldownFrames: 34,
         damageScale: 1,

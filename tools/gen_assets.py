@@ -67,6 +67,14 @@ BOW_BASE = BABY_CORE + (
     "tiny archer, "
 )
 
+# 第二形態。第一形態と一目で違うと分かるよう、シルエットから変える
+BOSS1B_BASE = (
+    "gigantic shattered porcelain doll monster, cracked white porcelain face split open, "
+    "glowing red light pouring out of the cracks, long tattered black victorian dress in rags, "
+    "extra jointed porcelain arms sprouting from the back, floating porcelain shards, "
+    "glowing red eyes, boss enemy, dark fantasy, horrifying, "
+)
+
 # ボス1(人形)の見た目。ポーズ違いでも同じ個体に見えるよう共通化する
 BOSS1_BASE = (
     "giant creepy porcelain doll, cracked white face, dead hollow eyes, "
@@ -269,6 +277,144 @@ ASSETS = {
         + "curled into a ball, rolling, tucked knees, side view, " + FLAT_BG,
         "seed": BOW_SEED, "width": 1024, "height": 1024,
         "negative_extra": "multiple views, character sheet, sword, hammer",
+    },
+
+    "boss1_windup_overhead": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "raising both arms straight up high overhead holding them together, about to smash straight down, leaning back, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_throw": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "one arm cocked far back over the shoulder holding a baby rattle, about to throw it, other arm pointing forward, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_low": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "crouching very low to the ground, one arm swept back near the floor, about to sweep along the ground, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_dash": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "crouched forward like a sprinter, both arms trailing behind, leaning far forward, about to charge straight ahead, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_scream": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "head thrown back, mouth wide open screaming, both arms flung out wide to the sides, chest out, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_windup_overhead": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "raising both arms straight up high overhead holding them together, about to smash straight down, leaning back, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_windup_throw": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "one arm cocked far back over the shoulder holding a baby rattle, about to throw it, other arm pointing forward, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_windup_low": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "crouching very low to the ground, one arm swept back near the floor, about to sweep along the ground, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_windup_dash": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "crouched forward like a sprinter, both arms trailing behind, leaning far forward, about to charge straight ahead, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_windup_scream": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "head thrown back, mouth wide open screaming, both arms flung out wide to the sides, chest out, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "standing still, arms hanging down, facing left, side view, full body, " + GREEN_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1b_attack": {
+        "prompt": QUALITY + ", " + BOSS1B_BASE
+        + "swinging all arms down forward, striking, lunging forward, motion lines, "
+        "attacking, facing left, side view, full body, " + GREEN_BG,
+        "seed": 424243, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "player_charge2": {
+        "prompt": QUALITY + ", " + PLAYER_BASE
+        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
+        "holding the greatsword back with both hands, gathering energy, "
+        "the greatsword glowing with orange light, energy aura, wind swirling around, "
+        "gritted teeth, straining, full body, " + FLAT_BG,
+        "seed": PLAYER_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
+    },
+    "player_charge3": {
+        "prompt": QUALITY + ", " + PLAYER_BASE
+        + "solo, standing on flat ground, side view, facing right, leaning far back, "
+        "holding the greatsword back with both hands at maximum power, "
+        "the greatsword blazing with crimson fire and lightning, huge red energy aura, "
+        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
+        "seed": PLAYER_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
+    },
+    "hammer_charge2": {
+        "prompt": QUALITY + ", " + HAMMER_BASE
+        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
+        "holding the war hammer back with both hands, gathering energy, "
+        "the war hammer glowing with orange light, energy aura, wind swirling around, "
+        "gritted teeth, straining, full body, " + FLAT_BG,
+        "seed": HAMMER_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
+    },
+    "hammer_charge3": {
+        "prompt": QUALITY + ", " + HAMMER_BASE
+        + "solo, standing on flat ground, side view, facing right, leaning far back, "
+        "holding the war hammer back with both hands at maximum power, "
+        "the war hammer blazing with crimson fire and lightning, huge red energy aura, "
+        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
+        "seed": HAMMER_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
+    },
+    "bow_charge2": {
+        "prompt": QUALITY + ", " + BOW_BASE
+        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
+        "holding the longbow back with both hands, gathering energy, "
+        "the longbow glowing with orange light, energy aura, wind swirling around, "
+        "gritted teeth, straining, full body, " + FLAT_BG,
+        "seed": BOW_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
+    },
+    "bow_charge3": {
+        "prompt": QUALITY + ", " + BOW_BASE
+        + "solo, standing on flat ground, side view, facing right, leaning far back, "
+        "holding the longbow back with both hands at maximum power, "
+        "the longbow blazing with crimson fire and lightning, huge red energy aura, "
+        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
+        "seed": BOW_SEED, "width": 832, "height": 1216,
+        "negative_extra": POSE_NEG + "multiple views, character sheet",
     },
 
     "bg_arena": {

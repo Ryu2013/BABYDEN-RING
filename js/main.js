@@ -25,11 +25,29 @@ class Game {
     this.timer = new Timer();
     this.screen = Screen.TITLE;
     this.stageIndex = 0;
+    this.pendingStageIndex = 0;
     this.charId = CHARACTERS[0].id;
     this.player = null;
     this.boss = null;
     this.projectiles = [];
     this.effects = new Effects();
+  }
+
+  // タイトルで合言葉を確かめたあと、生まれ（主人公）の選択画面に進む
+  goToSelect(passwordRaw) {
+    const trimmed = passwordRaw.trim();
+    if (!trimmed) {
+      this.pendingStageIndex = 0;
+    } else {
+      const result = decodeStagePassword(trimmed);
+      if (!result.ok || result.index < 0 || result.index >= STAGES.length) {
+        this.ui.showTitle('合言葉が違う');
+        return;
+      }
+      this.pendingStageIndex = result.index;
+    }
+    this.screen = Screen.SELECT;
+    this.ui.showSelect();
   }
 
   startFight(stageIndex) {
@@ -44,19 +62,9 @@ class Game {
     this.ui.showFight(this.boss.name);
   }
 
-  handleStartRequest(passwordRaw, charId) {
+  confirmCharacter(charId) {
     if (charId) this.charId = charId;
-    const trimmed = passwordRaw.trim();
-    if (!trimmed) {
-      this.startFight(0);
-      return;
-    }
-    const result = decodeStagePassword(trimmed);
-    if (!result.ok || result.index < 0 || result.index >= STAGES.length) {
-      this.ui.showTitle('パスワードが違います');
-      return;
-    }
-    this.startFight(result.index);
+    this.startFight(this.pendingStageIndex);
   }
 
   update() {
@@ -70,8 +78,9 @@ class Game {
     this._resolveProjectiles();
     this._drainEvents();
 
-    // 体同士は押し合う。ただしロールの無敵中だけはすり抜けられる
-    if (!player.isInvulnerable && !boss.isDead) {
+    // 体同士は押し合う。ただしロール中は最後まですり抜けられる
+    // （無敵時間だけだと足の遅いキャラが敵を越えられず壁に詰められる）
+    if (player.state !== 'roll' && !player.isInvulnerable && !boss.isDead) {
       const pb = player.getHurtbox();
       const bb = boss.getHurtbox();
       if (aabbIntersect(pb, bb)) {
@@ -91,7 +100,8 @@ class Game {
       playerStaminaRatio: player.stamina / player.maxStamina,
       playerPoiseRatio: player.poise / player.maxPoise,
       playerStaggered: player.isStaggered,
-      guardBroken: player.guardBroken,
+      flasks: player.flasks,
+      maxFlasks: player.maxFlasks,
       bossHpRatio: boss.hp / boss.maxHp,
       bossPoiseRatio: boss.poise / boss.maxPoise,
       bossStaggered: boss.isStaggered,
@@ -175,11 +185,11 @@ class Game {
         case 'parry':
           effects.parry(ev.x, ev.y);
           break;
-        case 'guardHit':
-          effects.guardHit(ev.x, ev.y);
+        case 'healStart':
+          effects.heal(player.x, player.y - player.h * 0.5, false);
           break;
-        case 'guardBreak':
-          effects.stagger(player.x, player.y - player.h * 0.7, 'ガード崩壊！');
+        case 'healDone':
+          effects.heal(player.x, player.y - player.h * 0.5, true);
           break;
         case 'playerHurt':
           effects.spark(ev.x, ev.y, '#ff6b6b', 10, 6);
@@ -217,6 +227,10 @@ class Game {
       }
     }
     boss.events.length = 0;
+
+    if (player.isHealing) {
+      effects.charging(player.x, player.y - player.h * 0.5, 0, '#9dffb0');
+    }
 
     // 溜め中はオーラを出し続ける
     if (player.isCharging) {
@@ -281,7 +295,8 @@ async function main() {
   await loadAssets();
 
   const ui = createUI({
-    onStartFight: (pw, charId) => game.handleStartRequest(pw, charId),
+    onGoToSelect: (pw) => game.goToSelect(pw),
+    onStartFight: (charId) => game.confirmCharacter(charId),
     onRetryFight: () => game.startFight(game.stageIndex),
     onBackToTitle: () => game.backToTitle(),
   });

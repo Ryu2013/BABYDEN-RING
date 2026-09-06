@@ -25,24 +25,37 @@ TOLERANCE = 34
 EMBLEM_ASSETS = {"logo_emblem"}
 
 TARGET_HEIGHT = {
-    "player_idle": 260,
-    "player_run": 260,
-    "player_attack": 260,
-    "player_swing": 260,
-    "player_roll": 220,
-    "player_guard": 260,
-    "boss1": 340,
-    "boss1_windup": 340,
-    "boss1_attack": 340,
-    "boss2": 340,
     "logo_diaper": 200,
 }
 
-# ハンマー/弓ベイビーも つるぎベイビー と同じ大きさに揃える
-for _prefix in ("hammer", "bow"):
-    for _pose, _h in (("idle", 260), ("run", 260), ("attack", 260),
-                      ("swing", 260), ("guard", 260), ("roll", 220)):
-        TARGET_HEIGHT[f"{_prefix}_{_pose}"] = _h
+# ポーズごとに切り抜き後の高さを揃えてしまうと、武器を振り上げた絵だけ
+# 体が小さく見える。そこで「元画像の中で被写体が占める縦の割合」を保ったまま
+# グループ単位で同じ倍率をかけ、基準ポーズが基準の高さになるようにする。
+#   グループ名: (基準ポーズ, 基準ポーズの出力高さ)
+SCALE_GROUPS = {
+    "player": ("player_idle", 260),
+    "hammer": ("hammer_idle", 260),
+    "bow": ("bow_idle", 260),
+    "boss1": ("boss1", 340),
+    "boss1b": ("boss1b", 380),
+}
+GROUP_MEMBERS = {
+    "player": ["player_idle", "player_run", "player_attack", "player_swing",
+               "player_guard", "player_roll", "player_charge2", "player_charge3"],
+    "hammer": ["hammer_idle", "hammer_run", "hammer_attack", "hammer_swing",
+               "hammer_guard", "hammer_roll", "hammer_charge2", "hammer_charge3"],
+    "bow": ["bow_idle", "bow_run", "bow_attack", "bow_swing",
+            "bow_guard", "bow_roll", "bow_charge2", "bow_charge3"],
+    "boss1": ["boss1", "boss1_attack", "boss1_windup"]
+             + [f"boss1_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream")],
+    "boss1b": ["boss1b", "boss1b_attack"]
+              + [f"boss1b_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream")],
+}
+GROUP_OF = {name: g for g, names in GROUP_MEMBERS.items() for name in names}
+# 転がりだけは正方形で生成しているので占有率をそのまま使えない。固定の高さにする
+FIXED_IN_GROUP = {"player_roll": 210, "hammer_roll": 210, "bow_roll": 210}
+# ボス2は単独なので従来どおり固定の高さで出す
+TARGET_HEIGHT["boss2"] = 340
 
 
 def cutout(img: Image.Image) -> Image.Image:
@@ -75,19 +88,45 @@ def cutout(img: Image.Image) -> Image.Image:
     return out.crop(bbox) if bbox else out
 
 
-def process_sprite(name: str, path: Path):
-    img = Image.open(path)
-    sprite = cutout(img)
-
-    target_h = TARGET_HEIGHT.get(name, 260)
+def _save_sprite(name: str, sprite: Image.Image, target_h: int):
     scale = target_h / sprite.height
-    sprite = sprite.resize(
-        (max(1, round(sprite.width * scale)), target_h), Image.LANCZOS
-    )
-
+    sprite = sprite.resize((max(1, round(sprite.width * scale)), target_h), Image.LANCZOS)
     out_path = OUT_DIR / f"{name}.png"
     sprite.save(out_path, optimize=True)
     print(f"[cut] {name}: {sprite.width}x{sprite.height} -> {out_path.stat().st_size // 1024}KB")
+
+
+def process_sprite(name: str, path: Path):
+    """グループに属さない単発のスプライト。従来どおり固定の高さに揃える。"""
+    img = Image.open(path)
+    _save_sprite(name, cutout(img), TARGET_HEIGHT.get(name, 260))
+
+
+def process_group(group: str, paths: dict):
+    """同じキャラのポーズ違いを、元画像内での占有率を保ったまま同じ倍率で書き出す。
+
+    ポーズごとに切り抜き後の高さを揃えると、武器を大きく振った絵ほど
+    体が小さく描かれてしまう。占有率で揃えれば体の大きさが一定に見える。
+    """
+    ref_name, ref_h = SCALE_GROUPS[group]
+    cut = {}
+    frac = {}
+    for name, path in paths.items():
+        img = Image.open(path)
+        sprite = cutout(img)
+        cut[name] = sprite
+        frac[name] = sprite.height / img.height
+
+    if ref_name not in frac:
+        # 基準ポーズが無ければ、そのグループで一番縦に小さいものを基準にする
+        ref_name = min(frac, key=frac.get)
+    k = ref_h / frac[ref_name]
+
+    for name, sprite in cut.items():
+        if name in FIXED_IN_GROUP:
+            _save_sprite(name, sprite, FIXED_IN_GROUP[name])
+        else:
+            _save_sprite(name, sprite, max(1, round(frac[name] * k)))
 
 
 def process_background(name: str, path: Path):
@@ -123,14 +162,25 @@ def process_emblem(name: str, path: Path):
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    groups = {g: {} for g in SCALE_GROUPS}
+    singles = []
+
     for path in sorted(RAW_DIR.glob("*.png")):
         name = path.stem
-        if name.startswith("bg_"):
-            process_background(name, path)
-        elif name in EMBLEM_ASSETS:
+        if name in EMBLEM_ASSETS:
             process_emblem(name, path)
+        elif name.startswith("bg_"):
+            process_background(name, path)
+        elif name in GROUP_OF:
+            groups[GROUP_OF[name]][name] = path
         else:
-            process_sprite(name, path)
+            singles.append((name, path))
+
+    for group, paths in groups.items():
+        if paths:
+            process_group(group, paths)
+    for name, path in singles:
+        process_sprite(name, path)
 
 
 if __name__ == "__main__":

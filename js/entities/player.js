@@ -5,9 +5,16 @@ const HURT_DURATION = 18;
 const HURT_CANCEL_FROM = 12;
 const HIT_INVULN_FRAMES = 24;
 
-// ガードを押した直後のこの猶予内に攻撃を受けるとパリィになる
-export const PARRY_WINDOW = 7;
+// 攻撃ボタンを押した瞬間から数フレームはパリィ受付。ガードボタンは廃止し、
+// 「相手の攻撃に合わせて攻撃を押す」だけでパリィになる
+export const PARRY_WINDOW = 8;
 export const PARRY_POISE_DAMAGE = 5;
+
+// 押しっぱなしがこのフレーム数を超えたら強攻撃の溜めに移行する
+const ATTACK_HOLD_FRAMES = 11;
+
+// エスト瓶。飲み始めから効くまでが長く、その間は完全に無防備
+export const FLASK = { startup: 28, active: 4, recovery: 22, stamina: 16, ratio: 0.55 };
 
 // 体幹の減り方。空振りには代償があり、振り回すだけでは体勢を保てない
 const POISE_LOSS = { lightAttack: 1, heavyAttack: 2, hit: 1 };
@@ -16,10 +23,10 @@ const STAGGER_FRAMES = 78;
 // 強攻撃の溜め3段階。atFrame は溜め開始からのフレーム数
 export const CHARGE_LEVELS = [
   { atFrame: 0, damage: 1.0, poise: 0, reach: 0, extraStamina: 0, color: '#ffe9b0' },
-  { atFrame: 26, damage: 1.7, poise: 1, reach: 14, extraStamina: 12, color: '#ffa63d' },
-  { atFrame: 58, damage: 2.5, poise: 2, reach: 30, extraStamina: 22, color: '#ff4438' },
+  { atFrame: 28, damage: 1.35, poise: 1, reach: 12, extraStamina: 12, color: '#ffa63d' },
+  { atFrame: 64, damage: 1.7, poise: 2, reach: 26, extraStamina: 22, color: '#ff4438' },
 ];
-const CHARGE_MAX_FRAMES = 96;
+const CHARGE_MAX_FRAMES = 104;
 
 function totalFrames(t) {
   return t.startup + t.active + t.recovery;
@@ -46,8 +53,9 @@ export class Player {
     this.maxPoise = charDef.maxPoise;
     this.poise = charDef.maxPoise;
     this.poiseIdleFrames = 0;
+    this.maxFlasks = charDef.flasks;
+    this.flasks = charDef.flasks;
 
-    this.guardBroken = false;
     this.state = 'idle';
     this.frame = 0;
     this.onGround = true;
@@ -55,6 +63,8 @@ export class Player {
     this.invulnFrames = 0;
     this.isDead = false;
 
+    this.parryFrames = 0;
+    this.canChargeThisPress = false;
     this.chargeFrames = 0;
     this.chargeLevel = 0;
     this.parryFlash = 0;
@@ -69,17 +79,10 @@ export class Player {
     return this.frame >= t.iframeStart && this.frame <= t.iframeEnd;
   }
 
-  get isGuarding() {
-    return this.state === 'guard';
-  }
-
-  get isStaggered() {
-    return this.state === 'stagger';
-  }
-
-  get isCharging() {
-    return this.state === 'heavyCharge';
-  }
+  get isStaggered() { return this.state === 'stagger'; }
+  get isCharging() { return this.state === 'heavyCharge'; }
+  get isHealing() { return this.state === 'heal'; }
+  get isParryReady() { return this.parryFrames > 0; }
 
   _spendStamina(cost) {
     if (this.stamina < cost) return false;
@@ -103,7 +106,7 @@ export class Player {
     switch (this.state) {
       case 'idle':
       case 'walk':
-      case 'guard':
+      case 'attackHold':
       case 'heavyCharge':
         return true;
       case 'roll':
@@ -171,6 +174,7 @@ export class Player {
     this.frame++;
     this.events.length = 0;
     if (this.invulnFrames > 0) this.invulnFrames--;
+    if (this.parryFrames > 0) this.parryFrames--;
     if (this.parryFlash > 0) this.parryFlash--;
 
     this.vy += GRAVITY;
@@ -187,7 +191,6 @@ export class Player {
     this.staminaIdleFrames++;
     if (this.staminaIdleFrames > this.char.staminaDelay) {
       this.stamina = Math.min(this.maxStamina, this.stamina + this.char.staminaRegen);
-      if (this.stamina >= this.maxStamina * 0.3) this.guardBroken = false;
     }
 
     // 体幹も自動で回復する。崩されている間は回復しない
@@ -207,23 +210,23 @@ export class Player {
     }
 
     if (this.onGround && this._acceptsAction()) {
-      // スタミナが足りない行動は発動しない（連打ではなく間合いと回復の管理を強いる）
-      for (const action of ['roll', 'heavyAttack', 'lightAttack']) {
-        if (!input.consumeBuffered(action)) continue;
-        if (!this._spendStamina(this.timings[action].stamina)) break;
+      if (input.consumeBuffered('roll') && this._spendStamina(this.timings.roll.stamina)) {
         this._faceHeldDirection(input);
-        if (action === 'heavyAttack') {
-          // 強攻撃は押しっぱなしで溜めに入る
-          this.chargeFrames = 0;
-          this.chargeLevel = 0;
-          this._enterState('heavyCharge');
-        } else {
-          this._enterState(action);
+        this._enterState('roll');
+      } else if (input.consumeBuffered('attack')) {
+        // 押した瞬間にパリィ受付が開く。離すのが早ければ弱、押し続ければ強の溜め
+        this._faceHeldDirection(input);
+        if (this.stamina >= this.timings.lightAttack.stamina) {
+          this.parryFrames = PARRY_WINDOW;
         }
-        break;
-      }
-      const busy = this.state === 'roll' || this.state === 'heavyCharge' || this.state.endsWith('Attack');
-      if (!busy && input.consumeBuffered('jump')) {
+        this.canChargeThisPress = this.stamina >= this.timings.heavyAttack.stamina;
+        this._enterState('attackHold');
+      } else if (input.consumeBuffered('heal') && this.flasks > 0
+        && this._spendStamina(FLASK.stamina)) {
+        this.flasks--;
+        this._enterState('heal');
+        this._emit('healStart');
+      } else if (this.state !== 'attackHold' && input.consumeBuffered('jump')) {
         this._faceHeldDirection(input);
         this.vy = this.char.jumpVelocity;
         this.onGround = false;
@@ -233,27 +236,20 @@ export class Player {
 
     switch (this.state) {
       case 'idle':
-      case 'walk':
-      case 'guard': {
-        const guarding = input.isDown('guard') && !this.guardBroken;
+      case 'walk': {
         let moving = false;
-        if (!guarding) {
-          if (input.isDown('left')) {
-            this.vx = -this.char.moveSpeed;
-            this.facing = -1;
-            moving = true;
-          } else if (input.isDown('right')) {
-            this.vx = this.char.moveSpeed;
-            this.facing = 1;
-            moving = true;
-          } else {
-            this.vx = 0;
-          }
+        if (input.isDown('left')) {
+          this.vx = -this.char.moveSpeed;
+          this.facing = -1;
+          moving = true;
+        } else if (input.isDown('right')) {
+          this.vx = this.char.moveSpeed;
+          this.facing = 1;
+          moving = true;
         } else {
           this.vx = 0;
         }
-
-        const nextState = guarding ? 'guard' : (moving ? 'walk' : 'idle');
+        const nextState = moving ? 'walk' : 'idle';
         if (nextState !== this.state) this._enterState(nextState);
         break;
       }
@@ -275,20 +271,34 @@ export class Player {
         if (this.frame >= totalFrames(t)) this._enterState('idle');
         break;
       }
+      case 'attackHold': {
+        // 構えた時点で足は止まる
+        this.vx = 0;
+        const held = input.isDown('attack');
+        if (!held) {
+          if (this._spendStamina(this.timings.lightAttack.stamina)) this._enterState('lightAttack');
+          else this._enterState('idle');
+        } else if (this.frame >= ATTACK_HOLD_FRAMES && this.canChargeThisPress) {
+          if (this._spendStamina(this.timings.heavyAttack.stamina)) {
+            this.chargeFrames = 0;
+            this.chargeLevel = 0;
+            this._enterState('heavyCharge');
+          } else {
+            this.canChargeThisPress = false;
+          }
+        }
+        break;
+      }
       case 'heavyCharge': {
+        // 溜め中は完全に足を止める。踏み込むか離すかの二択を迫る
+        this.vx = 0;
         this.chargeFrames++;
         const level = this._levelForFrames(this.chargeFrames);
         if (level !== this.chargeLevel) {
           this.chargeLevel = level;
           this._emit('chargeStep', { level });
         }
-        // 溜め中もじりじり動けるが、足はかなり遅くなる
-        const creep = this.char.moveSpeed * 0.32;
-        if (input.isDown('left')) { this.vx = -creep; this.facing = -1; }
-        else if (input.isDown('right')) { this.vx = creep; this.facing = 1; }
-        else this.vx = 0;
-
-        if (!input.isDown('heavyAttack') || this.chargeFrames >= CHARGE_MAX_FRAMES) {
+        if (!input.isDown('attack') || this.chargeFrames >= CHARGE_MAX_FRAMES) {
           this._releaseCharge();
         }
         break;
@@ -310,6 +320,15 @@ export class Player {
           // 空振りで体幹が尽きたときは idle で上書きせず、そのまま崩れる
           if (!this.isStaggered) this._enterState('idle');
         }
+        break;
+      }
+      case 'heal': {
+        this.vx = 0;
+        if (this.frame === FLASK.startup) {
+          this.hp = Math.min(this.maxHp, this.hp + this.maxHp * FLASK.ratio);
+          this._emit('healDone');
+        }
+        if (this.frame >= totalFrames(FLASK)) this._enterState('idle');
         break;
       }
       case 'hurt': {
@@ -369,37 +388,22 @@ export class Player {
     return { x: this.x - this.w / 2, y: this.y - this.h, w: this.w, h: this.h };
   }
 
-  // 戻り値: 'parry' | 'guard' | 'hit' | 'miss'
+  // 戻り値: 'parry' | 'hit' | 'miss'
   takeDamage(amount, fromX, opts = {}) {
     if (this.isDead || this.isInvulnerable) return 'miss';
 
-    const canGuard = !opts.unblockable && this.state === 'guard' && !this.guardBroken;
-
-    // 相手の攻撃に合わせてガードを入れるとパリィ。無傷で受け止め、相手の体幹を大きく削る
-    if (canGuard && this.frame <= PARRY_WINDOW) {
-      this.parryFlash = 20;
+    // 攻撃ボタンを合わせられていればパリィ。無傷で受け止め、相手の体幹を大きく削る
+    if (!opts.unblockable && this.parryFrames > 0) {
+      this.parryFrames = 0;
+      this.parryFlash = 22;
       this.stamina = Math.min(this.maxStamina, this.stamina + 14);
       this.staminaIdleFrames = 0;
+      this._enterState('idle');
       this._emit('parry', { x: this.x + this.facing * 34, y: this.y - this.h * 0.6 });
       return 'parry';
     }
 
-    let guarded = canGuard;
-    if (guarded) {
-      // 受け止めた分だけスタミナを消費し、支えきれなければガードが崩れて直撃する
-      const cost = amount * this.char.guardStaminaPerDamage;
-      if (this._spendStamina(cost)) {
-        this.staminaIdleFrames = -20; // 受けた直後は回復を遅らせる
-      } else {
-        this.stamina = 0;
-        this.guardBroken = true;
-        guarded = false;
-        this._emit('guardBreak');
-      }
-    }
-
-    const raw = guarded ? amount * this.char.guardMultiplier : amount * this.char.defense;
-    this.hp = Math.max(0, this.hp - raw);
+    this.hp = Math.max(0, this.hp - amount * this.char.defense);
     this.invulnFrames = HIT_INVULN_FRAMES;
 
     const knockDir = fromX !== undefined && fromX > this.x ? -1 : 1;
@@ -407,11 +411,6 @@ export class Player {
       this.isDead = true;
       this.state = 'dead';
       return 'hit';
-    }
-    if (guarded) {
-      this.vx = knockDir * 1.5;
-      this._emit('guardHit', { x: this.x + this.facing * 30, y: this.y - this.h * 0.6 });
-      return 'guard';
     }
 
     this._emit('playerHurt', { x: this.x, y: this.y - this.h * 0.6 });

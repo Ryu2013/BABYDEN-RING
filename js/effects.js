@@ -74,9 +74,15 @@ export class Effects {
     this.shake = Math.max(this.shake, 7);
   }
 
-  guardHit(x, y) {
-    this.spark(x, y, '#c8d4e4', 7, 4);
-    this.ring(x, y, 'rgba(180,200,230,0.7)', 14, 12, 3);
+  // エスト瓶。飲み始めは弱く、効いた瞬間に大きく光る
+  heal(x, y, applied) {
+    if (!applied) {
+      this.ring(x, y, 'rgba(150,255,190,0.6)', 18, 16, 3);
+      return;
+    }
+    this.ring(x, y, 'rgba(150,255,190,0.95)', 22, 28, 6);
+    this.spark(x, y, '#9dffb0', 20, 7);
+    this.text(x, y - 56, '回復', '#9dffb0');
   }
 
   stagger(x, y, label) {

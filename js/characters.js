@@ -4,9 +4,10 @@
 const SWORD = {
   id: 'sword',
   name: 'つるぎベイビー',
-  tagline: 'バランス型',
-  detail: '素直な性能。まずはこの子で間合いを覚える。',
+  tagline: '素直な生まれ',
+  detail: '剣を提げた、ごく当たり前の赤子。\n扱いに癖がなく、間合いを覚えるにはこの生まれがよい。',
   spritePrefix: 'sword',
+  portrait: 'assets/player_idle.png',
   accent: '#7fd0ff',
   maxHp: 100,
   defense: 1.0,
@@ -18,8 +19,9 @@ const SWORD = {
   poiseDelay: 60,
   moveSpeed: 4.2,
   jumpVelocity: -10.5,
-  guardMultiplier: 0.15,
-  guardStaminaPerDamage: 1.6,
+  flasks: 3,
+  // 選択画面に出す性能バー(0-100)
+  stats: { '攻撃力': 52, '防御力': 55, '素早さ': 62, 'スタミナ': 55, '体幹': 55, '間合い': 40 },
   timings: {
     roll: {
       startup: 2, active: 9, recovery: 8,
@@ -44,9 +46,10 @@ const SWORD = {
 const HAMMER = {
   id: 'hammer',
   name: 'ハンマーベイビー',
-  tagline: '重量型',
-  detail: '動きは鈍いが一撃が重く、打たれ強い。体幹も削りやすい。',
+  tagline: '重き生まれ',
+  detail: '大槌を引きずる、重たい赤子。\n動きは鈍いが、当たれば一撃で相手の体勢を奪う。',
   spritePrefix: 'hammer',
+  portrait: 'assets/hammer_idle.png',
   accent: '#ffb45a',
   maxHp: 132,
   defense: 0.7,          // 被ダメージ倍率。低いほど硬い
@@ -58,22 +61,22 @@ const HAMMER = {
   poiseDelay: 64,
   moveSpeed: 3.5,
   jumpVelocity: -9.6,
-  guardMultiplier: 0.06,
-  guardStaminaPerDamage: 1.05,
+  flasks: 3,
+  stats: { '攻撃力': 88, '防御力': 90, '素早さ': 28, 'スタミナ': 44, '体幹': 82, '間合い': 52 },
   timings: {
     roll: {
-      startup: 4, active: 9, recovery: 15,
-      iframeStart: 4, iframeEnd: 13,
-      cancelFrom: 23, stamina: 33, speed: 6.6,
+      startup: 3, active: 11, recovery: 13,
+      iframeStart: 3, iframeEnd: 15,
+      cancelFrom: 22, stamina: 33, speed: 7.4,
     },
     lightAttack: {
       startup: 7, active: 5, recovery: 15,
-      cancelFrom: 18, damage: 15, stamina: 27, poise: 2,
+      cancelFrom: 18, damage: 14, stamina: 27, poise: 2,
       hitbox: { w: 78, h: 54, offsetX: 32, offsetY: -6 },
     },
     heavyAttack: {
       startup: 25, active: 7, recovery: 31,
-      cancelFrom: 42, damage: 54, stamina: 50, poise: 4,
+      cancelFrom: 42, damage: 40, stamina: 50, poise: 4,
       hitbox: { w: 124, h: 78, offsetX: 34, offsetY: 0 },
     },
   },
@@ -82,9 +85,10 @@ const HAMMER = {
 const BOW = {
   id: 'bow',
   name: 'ゆみベイビー',
-  tagline: '遠距離型',
-  detail: '打たれ弱く火力も低いが、スタミナが多く矢で削り続けられる。',
+  tagline: '遠き生まれ',
+  detail: '弓を負う、痩せた赤子。\nひと当てが軽く打たれ弱いが、息が長く距離を選べる。',
   spritePrefix: 'bow',
+  portrait: 'assets/bow_idle.png',
   accent: '#9dffb0',
   maxHp: 78,
   defense: 1.3,
@@ -96,8 +100,8 @@ const BOW = {
   poiseDelay: 52,
   moveSpeed: 4.6,
   jumpVelocity: -11,
-  guardMultiplier: 0.3,
-  guardStaminaPerDamage: 2.3,
+  flasks: 3,
+  stats: { '攻撃力': 22, '防御力': 24, '素早さ': 78, 'スタミナ': 92, '体幹': 38, '間合い': 88 },
   timings: {
     roll: {
       startup: 2, active: 9, recovery: 6,
@@ -107,13 +111,13 @@ const BOW = {
     // 弓は近接判定を持たず、activeの頭で矢を撃ち出す
     lightAttack: {
       startup: 5, active: 3, recovery: 12,
-      cancelFrom: 14, damage: 9, stamina: 15, poise: 1,
-      projectile: { speed: 12.5, w: 34, h: 12, life: 110, offsetY: -46 },
+      cancelFrom: 16, damage: 6, stamina: 21, poise: 1,
+      projectile: { speed: 12.5, w: 34, h: 12, life: 34, offsetY: -46 },
     },
     heavyAttack: {
       startup: 18, active: 4, recovery: 22,
-      cancelFrom: 30, damage: 24, stamina: 30, poise: 3,
-      projectile: { speed: 15.5, w: 48, h: 16, life: 130, offsetY: -48, pierce: 1 },
+      cancelFrom: 32, damage: 18, stamina: 42, poise: 3,
+      projectile: { speed: 15.5, w: 48, h: 16, life: 30, offsetY: -48, pierce: 1 },
     },
   },
 };

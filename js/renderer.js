@@ -224,18 +224,23 @@ function drawEffects(ctx, effects) {
 }
 
 function bossSpriteKey(boss) {
-  const base = boss.def.sprite;
-  if (boss.isTelegraphing() && images[`${base}_windup`]) return `${base}_windup`;
+  const base = boss.spriteBase;
+  if (boss.isTelegraphing()) {
+    // 攻撃ごとに専用の構え絵があればそれを出す。読み合いの手がかりになる
+    const specific = boss.windupSpriteKey();
+    if (images[specific]) return specific;
+    if (images[`${base}_windup`]) return `${base}_windup`;
+  }
   if ((boss.phase === 'active' || boss.isRecovering()) && images[`${base}_attack`]) {
     return `${base}_attack`;
   }
-  return base;
+  return images[base] ? base : boss.def.sprite;
 }
 
 function drawBoss(ctx, boss, groundY) {
   const key = bossSpriteKey(boss);
   const img = images[key];
-  const height = boss.h * (boss.def.spriteScale || 1.35);
+  const height = relativeHeight(boss.h * (boss.spriteScale || 1.35), boss.spriteBase, key);
 
   drawShadow(ctx, boss.x, groundY, boss.w * 1.4);
 
@@ -309,6 +314,16 @@ function drawRage(ctx, boss, height) {
   ctx.restore();
 }
 
+// 切り抜き後のPNGはポーズ間の相対的な大きさを保持している。
+// 基準ポーズ(Idle)との高さの比をそのまま描画に反映すれば、
+// 武器を振り上げた絵でも体の大きさが変わって見えない。
+function relativeHeight(baseHeight, refKey, key) {
+  const ref = images[refKey];
+  const img = images[key];
+  if (!ref || !img) return baseHeight;
+  return baseHeight * (img.height / ref.height);
+}
+
 function playerSpriteKey(player, suffix) {
   const prefix = player.char.spritePrefix;
   if (images[prefix + suffix]) return prefix + suffix;
@@ -317,7 +332,7 @@ function playerSpriteKey(player, suffix) {
 }
 
 function drawPlayer(ctx, player, groundY) {
-  const height = player.h * 1.3;
+  const baseHeight = player.h * 1.3;
   drawShadow(ctx, player.x, groundY, player.w * 1.5);
 
   let key = playerSpriteKey(player, 'Idle');
@@ -325,10 +340,19 @@ function drawPlayer(ctx, player, groundY) {
   let bob = 0;
 
   switch (player.state) {
-    case 'heavyCharge':
-      // 溜め中はずっと振りかぶりの絵。小刻みに震える
+    case 'attackHold':
       key = playerSpriteKey(player, 'Attack') || key;
+      break;
+    case 'heavyCharge': {
+      // 溜めの段階ごとに絵そのものを変える
+      const poses = ['Attack', 'Charge2', 'Charge3'];
+      key = playerSpriteKey(player, poses[player.chargeLevel]) || playerSpriteKey(player, 'Attack') || key;
       bob = Math.sin(player.frame * 0.9) * (0.6 + player.chargeLevel * 0.8);
+      break;
+    }
+    case 'heal':
+      // 専用の絵は無いので、身をかがめるガードの絵を流用する
+      key = playerSpriteKey(player, 'Guard') || key;
       break;
     case 'lightAttack':
     case 'heavyAttack': {
@@ -339,9 +363,6 @@ function drawPlayer(ctx, player, groundY) {
         || playerSpriteKey(player, 'Attack') || key;
       break;
     }
-    case 'guard':
-      key = playerSpriteKey(player, 'Guard') || key;
-      break;
     case 'roll': {
       const t = player.timings.roll;
       const total = t.startup + t.active + t.recovery;
@@ -367,8 +388,14 @@ function drawPlayer(ctx, player, groundY) {
       break;
   }
 
+  // パリィ直後は受け止めの絵にする
+  if (player.parryFlash > 0) {
+    key = playerSpriteKey(player, 'Guard') || key;
+    rotation = 0;
+  }
+
   // 溜めのオーラは本体より先に敷く
-  if (player.isCharging) drawChargeAura(ctx, player, height);
+  if (player.isCharging) drawChargeAura(ctx, player, baseHeight);
 
   const img = key ? images[key] : null;
   if (!img) {
@@ -377,6 +404,8 @@ function drawPlayer(ctx, player, groundY) {
     ctx.fillRect(hurtbox.x, hurtbox.y, hurtbox.w, hurtbox.h);
     return;
   }
+  const refKey = playerSpriteKey(player, 'Idle');
+  const height = relativeHeight(baseHeight, refKey, key);
 
   let filter = null;
   let alpha = 1;
@@ -401,7 +430,7 @@ function drawPlayer(ctx, player, groundY) {
     filter,
   });
 
-  if (player.isStaggered) drawStaggerStars(ctx, player.x, player.y - height * 1.05, player.frame);
+  if (player.isStaggered) drawStaggerStars(ctx, player.x, player.y - baseHeight * 1.05, player.frame);
 }
 
 // 溜め段階が上がるほど濃く大きくなるオーラ

@@ -55,6 +55,7 @@ export class Boss {
     this.hitFlash = 0;
     this.poiseIdleFrames = 0;
     this.events = [];
+    this._forcedNext = null;
     this._applyForm(0, true);
   }
 
@@ -67,6 +68,11 @@ export class Boss {
     this.hp = form.maxHp;
     this.maxPoise = form.maxPoise;
     this.poise = form.maxPoise;
+    // 形態ごとに絵と大きさを差し替える
+    this.spriteBase = form.sprite || this.def.sprite;
+    this.spriteScale = form.spriteScale || this.def.spriteScale || 1.35;
+    this.w = form.width || 90;
+    this.h = form.height || 140;
     if (!initial) {
       this.phase = Phase.COOLDOWN;
       this.frame = 0;
@@ -85,6 +91,13 @@ export class Boss {
   currentStep() {
     if (!this.currentPattern) return null;
     return this.currentPattern.steps[this.stepIndex] || null;
+  }
+
+  // いまの予備動作に対応する絵のキー。攻撃ごとに構えが変わるので読める
+  windupSpriteKey() {
+    const step = this.currentStep();
+    const kind = (step && step.windupSprite) || (this.currentPattern && this.currentPattern.windupSprite);
+    return kind ? `${this.spriteBase}_windup_${kind}` : `${this.spriteBase}_windup`;
   }
 
   // 攻撃ごとの溜め時間。第二形態では短くなる
@@ -171,8 +184,16 @@ export class Boss {
       case Phase.COOLDOWN: {
         this.vulnerableMultiplier = 1;
         const distance = Math.abs(player.x - this.x);
-        if (this.form.moveSpeed && distance > this.form.preferredRange) {
-          this._moveToward(player, this.form.moveSpeed);
+        const poiseRatio = this.poise / this.maxPoise;
+        if (this.form.moveSpeed) {
+          if (poiseRatio < 0.4 && distance < this.form.preferredRange * 0.9) {
+            // 体幹が危ないので距離を取る
+            this._moveToward(player, -this.form.moveSpeed * 0.8);
+          } else if (distance > this.form.preferredRange) {
+            // 離されているほど速く詰める
+            const hustle = distance > 340 ? (this.form.dashSpeed || this.form.moveSpeed * 2.1) : this.form.moveSpeed;
+            this._moveToward(player, hustle);
+          }
         }
         if (this.frame >= this.form.cooldownFrames) {
           this._pickPattern(player);
@@ -229,6 +250,10 @@ export class Boss {
 
       case Phase.RECOVERY: {
         if (this.frame >= (this.currentPattern.recoveryFrames || 24)) {
+          // 「投げてから一気に詰める」のような繋ぎを仕込む
+          if (this.currentPattern.followUp && Math.random() < 0.85) {
+            this._forcedNext = this.currentPattern.followUp;
+          }
           this.phase = Phase.COOLDOWN;
           this.frame = 0;
           this.currentPattern = null;
@@ -247,25 +272,46 @@ export class Boss {
   }
 
   _pickPattern(player) {
-    const pool = this.form.pool
-      .map((name) => this.patterns[name])
-      .filter(Boolean);
+    const distance = Math.abs(player.x - this.x);
+    const poiseRatio = this.poise / this.maxPoise;
 
-    // プレイヤーが強攻撃を溜めているのを見たら、高確率で距離を取って躱す
+    // 直前の攻撃から繋ぐことが決まっていればそれを最優先する
+    if (this._forcedNext && this.patterns[this._forcedNext]) {
+      this.currentPattern = this.patterns[this._forcedNext];
+      this._forcedNext = null;
+      return;
+    }
+
     const dodge = this.patterns[this.form.dodgePattern || 'backstep'];
-    if (dodge && player && player.isCharging && player.chargeLevel >= 1) {
-      if (Math.abs(player.x - this.x) < 190 && Math.random() < 0.62) {
+    if (dodge) {
+      // 体幹を削られてきたら距離を取って立て直す
+      if (poiseRatio < 0.4 && distance < 240 && Math.random() < 0.7) {
         this.currentPattern = dodge;
+        return;
+      }
+      // 強攻撃を溜めているのを見たら高確率で躱す
+      if (player.isCharging && distance < 200 && Math.random() < 0.62) {
+        this.currentPattern = dodge;
+        return;
+      }
+      // 回復しようとしているのは見逃さない。すぐ詰めて潰す
+      if (player.isHealing && this.patterns.lunge && distance > 150) {
+        this.currentPattern = this.patterns.lunge;
         return;
       }
     }
 
-    const distance = Math.abs(player.x - this.x);
+    const pool = this.form.pool.map((name) => this.patterns[name]).filter(Boolean);
     const weighted = pool.map((p) => {
       let w = p.weight || 1;
-      // 遠いときは飛び道具と突進を、近いときは近接をよく使う
-      if (distance > 300) w *= p.longRange ? 2.6 : 0.5;
-      else if (distance < 150) w *= p.longRange ? 0.5 : 1.3;
+      if (distance > 300) {
+        // 離れられたら飛び道具と突進。近接技はまず選ばない
+        w *= p.longRange ? 3.2 : 0.25;
+      } else if (distance > 180) {
+        w *= p.longRange ? 1.4 : 0.9;
+      } else {
+        w *= p.longRange ? 0.4 : 1.35;
+      }
       return { p, w };
     });
     const total = weighted.reduce((s, e) => s + e.w, 0);
