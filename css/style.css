@@ -148,8 +148,8 @@ body {
 #logo-image {
   width: clamp(280px, 66%, 560px);
   height: auto;
-  -webkit-mask-image: radial-gradient(ellipse 74% 74% at 50% 48%, #000 58%, transparent 100%);
-  mask-image: radial-gradient(ellipse 74% 74% at 50% 48%, #000 58%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 64% 68% at 50% 47%, #000 44%, transparent 94%);
+  mask-image: radial-gradient(ellipse 64% 68% at 50% 47%, #000 44%, transparent 94%);
   filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.95));
 }
 
@@ -294,9 +294,10 @@ body {
 
 #select-stats {
   margin: 0;
+  max-width: 340px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 16px;
+  grid-template-columns: 4.5em 1fr;
+  gap: 2px 12px;
 }
 
 .stat { display: contents; }
@@ -531,17 +532,6 @@ body {
   color: var(--gold-bright);
 }
 
-/* ===== 画面の向きの案内 ===== */
-
-#rotate-hint {
-  display: none;
-  margin: 6px 0 0;
-  text-align: center;
-  font-size: 11px;
-  color: var(--paper-dim);
-  letter-spacing: 0.1em;
-}
-
 /* ===== タッチ操作 ===== */
 
 #touch-controls {
@@ -562,34 +552,34 @@ body {
 }
 
 .touch-btn {
-  flex: 1;
-  min-width: 62px;
-  height: 62px;
+  min-width: 58px;
+  height: 58px;
   border: 1px solid rgba(200, 163, 73, 0.45);
   border-radius: 50%;
-  background: rgba(10, 9, 7, 0.55);
+  background: rgba(10, 9, 7, 0.42);
   color: var(--gold-bright);
   font-family: inherit;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: 0.05em;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
   transition: background 0.12s, box-shadow 0.12s;
 }
 
 .touch-btn.primary {
-  min-width: 86px;
-  height: 86px;
+  min-width: 82px;
+  height: 82px;
   font-size: 24px;
   border-color: rgba(200, 163, 73, 0.75);
-  background: rgba(30, 22, 10, 0.6);
+  background: rgba(30, 22, 10, 0.5);
 }
 
-.touch-btn.small { min-width: 54px; height: 54px; font-size: 14px; }
+.touch-btn.small { min-width: 50px; height: 50px; font-size: 13px; }
 
 .touch-btn.pressed,
 .touch-btn:active {
-  background: rgba(200, 163, 73, 0.32);
+  background: rgba(200, 163, 73, 0.34);
   box-shadow: 0 0 16px rgba(200, 163, 73, 0.45);
 }
 
@@ -606,53 +596,181 @@ body {
   #touch-controls { display: none !important; }
 }
 
-/* 縦持ちのときは操作ボタンを画面の下に出し、ゲーム画面と重ならないようにする */
+/* ===== 縦持ちの案内 ===== */
+
+#rotate-gate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(32, 26, 16, 0.9), #05060a 72%);
+  text-align: center;
+  padding: 24px;
+}
+
+.rotate-icon {
+  display: block;
+  font-size: 64px;
+  line-height: 1;
+  color: var(--gold);
+  animation: rotate-tip 2.6s ease-in-out infinite;
+}
+
+.rotate-title {
+  margin: 22px 0 4px;
+  font-size: 17px;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--gold-bright);
+}
+
+.rotate-sub {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--paper-dim);
+}
+
+@keyframes rotate-tip {
+  0%, 42%   { transform: rotate(90deg) scaleX(0.62); }
+  58%, 100% { transform: rotate(0deg) scaleX(1); }
+}
+
+/* ===== スマホ（タッチ端末） ===== */
+
+/* 縦持ちでは遊ばせず、横にするよう促す */
 @media (orientation: portrait) and (pointer: coarse) {
-  body { align-items: flex-start; }
-  #stage { height: 100dvh; }
-  #rotate-hint { display: block; }
+  #stage { display: none !important; }
+  #rotate-gate { display: flex; }
+}
+
+@media (pointer: coarse) {
+  /* キーボードの案内は不要 */
+  #controls-help, .hint { display: none; }
+
+  /* 画面下はボタンの領域。HUDは全部上に寄せる */
+  #hud {
+    justify-content: flex-start;
+    padding: 8px 12px;
+    gap: 3px;
+  }
+  .player-info { margin-top: 8px; }
+  .timer { order: 3; margin-top: 2px; font-size: 17px; }
+  #boss-name { font-size: 11px; }
+  .hp-bar { height: 10px; max-width: 46%; }
+  .boss-hp-bar { max-width: 100%; }
+  .stamina-bar { height: 7px; max-width: 38%; }
+  .poise-bar { height: 5px; max-width: 38%; }
+  .boss-poise-bar { max-width: 100%; }
+  .flask { width: 8px; height: 11px; }
+}
+
+/* 横持ち。ウィンドウいっぱいを使い、キャンバスだけを内側で letterbox する */
+@media (orientation: landscape) and (pointer: coarse) {
+  body { align-items: stretch; }
+
+  #stage {
+    max-width: none;
+    width: 100%;
+    height: 100dvh;
+  }
+
+  #viewport {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 100dvh;
+    box-shadow: none;
+  }
+
+  /* 論理解像度960x540を保ったまま、画面内に収める */
+  #game-canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .screen {
+    padding: 8px max(12px, env(safe-area-inset-left)) 8px max(12px, env(safe-area-inset-right));
+    gap: 5px;
+  }
 
   #touch-controls {
-    position: static;
-    flex: 1;
-    align-items: flex-end;
-    gap: 12px;
-    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+    padding: 0 max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+             max(10px, env(safe-area-inset-left));
   }
-  .touch-left { max-width: 190px; }
-  .touch-right { max-width: 230px; }
-  .touch-btn { height: 68px; font-size: 16px; }
-  .touch-btn.primary { height: 92px; }
-  .touch-btn.small { height: 58px; }
+
+  /* --- タイトル --- */
+  #logo-image { width: clamp(220px, 40%, 400px); }
+  .subtitle { font-size: 11px; margin: 0; }
+  .title-form { gap: 4px; }
+  .title-form label { font-size: 10px; }
+  #password-input { font-size: 14px; padding: 4px 10px; width: 180px; }
+  .error { min-height: 0; font-size: 11px; }
+
+  /* --- 生まれの選択 --- */
+  #select-screen { padding: 8px 16px 6px; gap: 5px; }
+  .screen-title { font-size: 12px; letter-spacing: 0.34em; text-indent: 0.34em; margin: 0; }
+
+  #select-body {
+    max-width: 720px;
+    gap: 14px;
+    padding-bottom: 5px;
+    overflow: hidden;
+  }
+  #select-portrait { flex: 0 0 26%; }
+  #select-name { font-size: 15px; }
+  #select-tagline { font-size: 9px; margin-bottom: 2px; }
+  .stat dt { font-size: 9px; }
+  .stat dd b { font-size: 9px; }
+  #select-stats { gap: 1px 12px; }
+  /* 説明文は溢れさせず、入る分だけ見せる */
+  #select-detail {
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  #select-list { gap: 6px; }
+  .select-card { width: 52px; height: 52px; padding: 2px; }
+  .select-card img { height: 30px; }
+  .select-card span { font-size: 7px; }
+
+  .select-actions { gap: 8px; }
+  .fs-button { min-width: 128px; padding: 5px 14px; font-size: 12px; letter-spacing: 0.16em; text-indent: 0.16em; }
+  .fs-button.ghost { min-width: 104px; font-size: 11px; }
+
+  /* --- 勝敗 --- */
+  .banner { font-size: clamp(22px, 5vw, 38px); }
+  .banner-sub { font-size: 10px; margin: 0 0 6px; }
+  #victory-screen p { font-size: 11px; margin: 1px 0; }
+  .password { font-size: 16px; }
 }
 
-/* 狭い画面では選択画面を縦に積む */
-@media (max-width: 560px) {
-  #select-body { flex-direction: column; gap: 10px; }
-  #select-portrait { flex: 0 0 40%; border: none; }
-  #select-stats { grid-template-columns: 1fr; }
+/* 背の低い横持ち（iPhone SE 等）はさらに詰める */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 400px) {
+  #logo-image { width: clamp(200px, 34%, 330px); }
+  #select-portrait { flex: 0 0 22%; }
+  #select-detail {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 9px;
+    line-height: 1.45;
+  }
+  .select-card { width: 46px; height: 46px; }
+  .select-card img { height: 26px; }
+  .touch-btn { min-width: 52px; height: 52px; font-size: 14px; }
+  .touch-btn.primary { min-width: 72px; height: 72px; font-size: 21px; }
+  .touch-btn.small { min-width: 46px; height: 46px; font-size: 12px; }
 }
 
-/* 画面が小さいとHUDがゲーム画面からはみ出すので、まとめて縮める */
-@media (max-width: 620px) {
-  #hud { padding: 5px 9px; gap: 2px; }
-  #boss-name { font-size: 10px; letter-spacing: 0.1em; }
-  .timer { font-size: 15px; }
-  .hp-bar { height: 9px; }
-  .stamina-bar { height: 6px; }
-  .poise-bar { height: 4px; }
-  .flask { width: 7px; height: 10px; }
-  .flask-row { gap: 3px; }
+/* 狭い画面（PCの縮小ウィンドウなど）向けの微調整 */
+@media (max-width: 620px) and (pointer: fine) {
   .banner { font-size: clamp(22px, 8vw, 34px); }
   .screen { padding: 10px 12px; gap: 6px; }
-  #select-screen { padding: 10px 12px; }
-  .screen-title { font-size: 13px; letter-spacing: 0.36em; }
   .fs-button { min-width: 150px; padding: 7px 18px; font-size: 13px; }
-  .select-card { width: 60px; height: 60px; }
-  .select-card img { height: 34px; }
-}
-
-/* 横持ちのときは操作ボタンが画面に重なるので、HUDを一段上げる */
-@media (orientation: landscape) and (pointer: coarse) {
-  #hud { padding-bottom: 76px; }
 }
