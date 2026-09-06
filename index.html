@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>BABYDEN RING</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="stage">
+  <div id="viewport">
+    <canvas id="game-canvas" width="960" height="540"></canvas>
+
+    <div id="title-screen" class="screen">
+      <div id="logo">
+        <img id="logo-emblem" src="assets/logo_emblem.png" alt="" />
+        <h1 class="logo-word"><span class="logo-baby">Baby<svg class="logo-diaper" viewBox="0 0 200 62" aria-hidden="true"><path d="M8 10 Q100 0 192 10 L186 26 Q172 54 130 59 Q100 62 70 59 Q28 54 14 26 Z" fill="#fcfdff"/><path d="M8 10 Q100 0 192 10 L191 24 Q100 15 9 24 Z" fill="#e6eefb"/><rect x="26" y="9" width="32" height="11" rx="5" fill="#b3d2f4"/><rect x="142" y="9" width="32" height="11" rx="5" fill="#b3d2f4"/><path d="M52 40 Q60 54 78 58" stroke="#dde7f6" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M148 40 Q140 54 122 58" stroke="#dde7f6" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>den</h1>
+        <h1 class="logo-word logo-word-lower">Ring</h1>
+        <p class="subtitle">おしゃぶりの勇者は、玉座を目指す。</p>
+      </div>
+
+      <div class="title-form">
+        <label for="password-input">パスワード（お持ちの場合）</label>
+        <input id="password-input" type="text" inputmode="text" autocomplete="off" placeholder="例: 01-K" />
+        <p id="password-error" class="error"></p>
+        <button id="start-button">たたかう</button>
+      </div>
+
+      <div id="char-select">
+        <p class="section-label">主人公をえらぶ</p>
+        <div id="char-cards"></div>
+        <p id="char-detail"></p>
+      </div>
+
+      <dl id="controls-help">
+        <div><dt>移動</dt><dd>← →</dd></div>
+        <div><dt>ロール</dt><dd>Space</dd></div>
+        <div><dt>弱攻撃</dt><dd>J</dd></div>
+        <div><dt>強攻撃(長押しで溜め)</dt><dd>K</dd></div>
+        <div><dt>ガード / パリィ</dt><dd>L</dd></div>
+        <div><dt>ジャンプ</dt><dd>↑</dd></div>
+      </dl>
+      <p class="hint">敵の攻撃に合わせてガードを押すとパリィ。無傷で受け止め、相手の体幹を大きく削る。</p>
+    </div>
+
+    <div id="hud" class="screen" hidden>
+      <div class="boss-info">
+        <span id="boss-name"></span>
+        <div class="hp-bar boss-hp-bar"><div id="boss-hp-fill" class="hp-fill"></div></div>
+        <div class="poise-bar boss-poise-bar"><div id="boss-poise-fill" class="poise-fill"></div></div>
+      </div>
+      <div id="timer-display" class="timer">00:00.00</div>
+      <div class="player-info">
+        <div class="hp-bar player-hp-bar"><div id="player-hp-fill" class="hp-fill"></div></div>
+        <div class="hp-bar stamina-bar"><div id="player-stamina-fill" class="hp-fill"></div></div>
+        <div class="poise-bar player-poise-bar"><div id="player-poise-fill" class="poise-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="victory-screen" class="screen" hidden>
+      <h2>勝利！</h2>
+      <p>撃破タイム: <span id="victory-time"></span></p>
+      <p id="victory-password-row">つぎのパスワード: <span id="victory-password" class="password"></span></p>
+      <p id="all-clear-message" hidden>すべてのボスを撃破した！おめでとう！</p>
+      <button id="retry-button">タイトルへ</button>
+    </div>
+
+    <div id="gameover-screen" class="screen" hidden>
+      <h2>やられた…</h2>
+      <button id="gameover-retry-button">もう一度</button>
+    </div>
+
+  </div>
+
+    <p id="rotate-hint">横向きにすると画面が大きくなります</p>
+
+    <div id="touch-controls" hidden>
+      <div class="touch-left">
+        <button id="btn-left" class="touch-btn">◀</button>
+        <button id="btn-right" class="touch-btn">▶</button>
+        <button id="btn-jump" class="touch-btn">JUMP</button>
+      </div>
+      <div class="touch-right">
+        <button id="btn-guard" class="touch-btn">GUARD</button>
+        <button id="btn-roll" class="touch-btn">ROLL</button>
+        <button id="btn-light" class="touch-btn">弱</button>
+        <button id="btn-heavy" class="touch-btn">強</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
