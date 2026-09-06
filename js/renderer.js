@@ -125,9 +125,23 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
 }
 
 function drawProjectile(ctx, p) {
+  if (p.pending) return;
   ctx.save();
   ctx.translate(p.x, p.y);
-  if (p.owner === 'player') {
+  if (p.kind === 'rain') {
+    // 落ちてくる矢。真下を向いた光の筋
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 12;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(-p.w / 2, p.h / 2 - 12);
+    ctx.lineTo(p.w / 2, p.h / 2 - 12);
+    ctx.lineTo(0, p.h / 2 + 8);
+    ctx.closePath();
+    ctx.fill();
+  } else if (p.owner === 'player') {
     // 矢は進行方向に伸びた光の筋として描く
     ctx.fillStyle = p.color;
     ctx.shadowColor = p.color;
@@ -205,11 +219,18 @@ function drawEffects(ctx, effects) {
 
 function bossSpriteKey(boss) {
   const base = boss.spriteBase;
+  // 息切れは一目で分かるよう専用の絵にする
+  if (boss.isExhausted && images[`${base}_exhausted`]) return `${base}_exhausted`;
   if (boss.isTelegraphing()) {
     // 攻撃ごとに専用の構え絵があればそれを出す。読み合いの手がかりになる
     const specific = boss.windupSpriteKey();
     if (images[specific]) return specific;
     if (images[`${base}_windup`]) return `${base}_windup`;
+  }
+  if (boss.phase === 'active') {
+    // 連撃は一撃ごとに絵が変わるので、振っている最中も同じ絵を保つ
+    const special = boss.specialSpriteKey();
+    if (special && images[special]) return special;
   }
   if ((boss.phase === 'active' || boss.isRecovering()) && images[`${base}_attack`]) {
     return `${base}_attack`;
@@ -242,6 +263,10 @@ function drawBoss(ctx, boss, groundY) {
   } else if (boss.isStaggered) {
     filter = 'brightness(0.85) saturate(0.4)';
     rotation = 0.22 * boss.facing;
+  } else if (boss.isExhausted) {
+    // 息切れ中は色が抜けて、肩で息をするように上下する
+    filter = 'brightness(0.8) saturate(0.35)';
+    scale = 1 + Math.sin(boss.frame * 0.18) * 0.02;
   } else if (boss.isTelegraphing()) {
     const step = boss.currentStep();
     // 白いボスでも分かるよう、白飛ばしではなく染める。ガード不可は黄色
@@ -265,7 +290,22 @@ function drawBoss(ctx, boss, groundY) {
   });
 
   if (boss.isStaggered) drawStaggerStars(ctx, boss.x, boss.y - height * 0.95, boss.frame);
+  if (boss.isExhausted) drawBreath(ctx, boss.x, boss.y - height * 0.72, boss.facing, boss.frame);
   if (boss.formIndex > 0 && !boss.isStaggered) drawRage(ctx, boss, height);
+}
+
+// 息切れ中の吐息
+function drawBreath(ctx, x, y, facing, frame) {
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const t = ((frame * 0.02) + i * 0.33) % 1;
+    ctx.globalAlpha = 0.35 * (1 - t);
+    ctx.fillStyle = '#cfe0f0';
+    ctx.beginPath();
+    ctx.arc(x + facing * (24 + t * 46), y - t * 20, 4 + t * 9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 // 体勢を崩している間、頭上に星を回す
@@ -347,7 +387,7 @@ function drawPlayer(ctx, player, groundY) {
       const t = player.timings.roll;
       const total = t.startup + t.active + t.recovery;
       key = playerSpriteKey(player, 'Roll') || key;
-      rotation = (player.frame / total) * Math.PI * 2 * player.facing;
+      rotation = (player.frame / total) * Math.PI * 2 * player.rollDir;
       break;
     }
     case 'stagger':

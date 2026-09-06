@@ -64,6 +64,8 @@ export class Player {
     this.isDead = false;
 
     this.parryFrames = 0;
+    // ロール中の移動方向。ロックオンで向きが固定されるため向きとは別に持つ
+    this.rollDir = 1;
     this.chargeFrames = 0;
     this.chargeLevel = 0;
     this.parryFlash = 0;
@@ -120,9 +122,27 @@ export class Player {
     }
   }
 
-  _faceHeldDirection(input) {
-    if (input.isDown('left')) this.facing = -1;
-    else if (input.isDown('right')) this.facing = 1;
+  // 予備動作に入ったあとは振り向けない。ここに挙げた状態では向きを固定する
+  get isCommitted() {
+    switch (this.state) {
+      case 'roll':
+      case 'attackHold':
+      case 'heavyCharge':
+      case 'lightAttack':
+      case 'heavyAttack':
+      case 'heal':
+      case 'hurt':
+      case 'stagger':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  _heldDir(input) {
+    if (input.isDown('left')) return -1;
+    if (input.isDown('right')) return 1;
+    return this.facing;
   }
 
   damagePoise(amount) {
@@ -176,7 +196,7 @@ export class Player {
     this._emit('chargeRelease', { level });
   }
 
-  update(input) {
+  update(input, targetX) {
     if (this.isDead) return;
     this.frame++;
     this.events.length = 0;
@@ -216,14 +236,20 @@ export class Player {
       return;
     }
 
+    // ロックオン。行動していないあいだは常に敵の方を向く。
+    // スマホで向きを合わせる操作を要らなくするため
+    if (!this.isCommitted && targetX !== undefined) {
+      this.facing = targetX < this.x ? -1 : 1;
+    }
+
     if (this._acceptsAction()) {
       if (this.onGround) {
         if (input.consumeBuffered('roll') && this._spendStamina(this.timings.roll.stamina)) {
-          this._faceHeldDirection(input);
+          // 向きは敵に固定したまま、転がる方向だけ入力で決める
+          this.rollDir = this._heldDir(input);
           this._enterState('roll');
         } else if (input.consumeBuffered('attack')) {
           // 押した瞬間にパリィ受付が開く。離すのが早ければ弱、押し続ければ強の溜め
-          this._faceHeldDirection(input);
           this.parryFrames = PARRY_WINDOW;
           this._enterState('attackHold');
         } else if (input.consumeBuffered('heal') && this.flasks > 0
@@ -232,14 +258,12 @@ export class Player {
           this._enterState('heal');
           this._emit('healStart');
         } else if (this.state !== 'attackHold' && input.consumeBuffered('jump')) {
-          this._faceHeldDirection(input);
           this.vy = this.char.jumpVelocity;
           this.onGround = false;
           this._enterState('jump');
         }
       } else if (input.consumeBuffered('attack')) {
         // 空中では溜められないが、弱攻撃は出せる（飛び込み斬り）
-        this._faceHeldDirection(input);
         this.parryFrames = PARRY_WINDOW;
         if (this._spendStamina(this.timings.lightAttack.stamina)) this._enterState('lightAttack');
       }
@@ -251,11 +275,9 @@ export class Player {
         let moving = false;
         if (input.isDown('left')) {
           this.vx = -this.char.moveSpeed;
-          this.facing = -1;
           moving = true;
         } else if (input.isDown('right')) {
           this.vx = this.char.moveSpeed;
-          this.facing = 1;
           moving = true;
         } else {
           this.vx = 0;
@@ -265,20 +287,15 @@ export class Player {
         break;
       }
       case 'jump': {
-        if (input.isDown('left')) {
-          this.vx = -this.char.moveSpeed;
-          this.facing = -1;
-        } else if (input.isDown('right')) {
-          this.vx = this.char.moveSpeed;
-          this.facing = 1;
-        }
+        if (input.isDown('left')) this.vx = -this.char.moveSpeed;
+        else if (input.isDown('right')) this.vx = this.char.moveSpeed;
         if (this.onGround) this._enterState('idle');
         break;
       }
       case 'roll': {
         const t = this.timings.roll;
         const progress = this.frame / totalFrames(t);
-        this.vx = this.facing * t.speed * (1 - 0.7 * progress);
+        this.vx = this.rollDir * t.speed * (1 - 0.7 * progress);
         if (this.frame >= totalFrames(t)) this._enterState('idle');
         break;
       }

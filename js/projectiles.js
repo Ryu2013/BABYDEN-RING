@@ -2,7 +2,7 @@
 export class Projectile {
   constructor(spec) {
     Object.assign(this, {
-      vy: 0, gravity: 0, pierce: 0, unblockable: false, life: 150,
+      vy: 0, gravity: 0, pierce: 0, unblockable: false, life: 150, spawnDelay: 0,
     }, spec);
     this.age = 0;
     this.hitCount = 0;
@@ -10,12 +10,18 @@ export class Projectile {
     this.expired = false;
   }
 
+  // 出現待ちのあいだは動かず、当たりもしない（矢の雨を少しずつ落とすため）
+  get pending() {
+    return this.age < this.spawnDelay;
+  }
+
   update() {
+    this.age++;
+    if (this.pending) return;
     this.vy += this.gravity;
     this.x += this.vx;
     this.y += this.vy;
-    this.age++;
-    if (this.age >= this.life) {
+    if (this.age >= this.life + this.spawnDelay) {
       this.dead = true;
       this.expired = true;
     }

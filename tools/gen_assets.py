@@ -396,6 +396,56 @@ ASSETS = {
         "negative_extra": POSE_NEG + "multiple views, character sheet",
     },
 
+    "boss1_windup_thrust": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "lunging forward low and long, one arm thrust straight ahead like a spear, body stretched out, about to stab, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_spin": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "spinning around on one foot, both arms flung out wide horizontally, dress flaring out, mid spin, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_stomp": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "both arms raised overhead, one leg lifted very high, about to stomp the ground with tremendous force, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_rain": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "both arms raised straight up to the sky, head tilted back looking up, summoning something from above, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_charge": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "hunched over, gathering dark energy between both hands in front of the chest, glowing sphere, straining, building up power, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_windup_roll": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "leaping sideways curled up, tumbling, dodging out of the way, mid air, "
+        "winding up for an attack, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+    "boss1_exhausted": {
+        "prompt": QUALITY + ", " + BOSS1_BASE
+        + "hunched over exhausted, arms hanging limp at the sides, head hanging down, "
+        "staggering, out of breath, defenseless, facing left, side view, full body, " + FLAT_BG,
+        "seed": 424242, "width": 1024, "height": 1024,
+        "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
+    },
+
     "bg_arena": {
         "prompt": QUALITY
         + ", no humans, scenery, abandoned nursery turned into a gothic boss arena, "

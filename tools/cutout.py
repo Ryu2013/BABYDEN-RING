@@ -27,6 +27,9 @@ TARGET_HEIGHT = {}
 # 体が小さく見える。そこで「元画像の中で被写体が占める縦の割合」を保ったまま
 # グループ単位で同じ倍率をかけ、基準ポーズが基準の高さになるようにする。
 #   グループ名: (基準ポーズ, 基準ポーズの出力高さ)
+BOSS_WINDUPS = ("overhead", "throw", "low", "dash", "scream",
+                "thrust", "spin", "stomp", "rain", "charge", "roll")
+
 SCALE_GROUPS = {
     "player": ("player_idle", 260),
     "hammer": ("hammer_idle", 260),
@@ -41,10 +44,10 @@ GROUP_MEMBERS = {
                "hammer_guard", "hammer_roll", "hammer_charge2", "hammer_charge3"],
     "bow": ["bow_idle", "bow_run", "bow_attack", "bow_swing",
             "bow_guard", "bow_roll", "bow_charge2", "bow_charge3"],
-    "boss1": ["boss1", "boss1_attack", "boss1_windup"]
-             + [f"boss1_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream")],
-    "boss1b": ["boss1b", "boss1b_attack"]
-              + [f"boss1b_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream")],
+    "boss1": ["boss1", "boss1_attack", "boss1_windup", "boss1_exhausted"]
+             + [f"boss1_windup_{k}" for k in BOSS_WINDUPS],
+    "boss1b": ["boss1b", "boss1b_attack", "boss1b_exhausted"]
+              + [f"boss1b_windup_{k}" for k in BOSS_WINDUPS],
 }
 GROUP_OF = {name: g for g, names in GROUP_MEMBERS.items() for name in names}
 # 転がりだけは正方形で生成しているので占有率をそのまま使えない。固定の高さにする

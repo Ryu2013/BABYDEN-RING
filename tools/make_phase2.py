@@ -16,8 +16,9 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 
-SOURCES = ["boss1", "boss1_attack"] + [
-    f"boss1_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream")
+SOURCES = ["boss1", "boss1_attack", "boss1_exhausted"] + [
+    f"boss1_windup_{k}" for k in ("overhead", "throw", "low", "dash", "scream",
+                                  "thrust", "spin", "stomp", "rain", "charge", "roll")
 ]
 # 第二形態は一回り大きい
 SCALE = 1.12

@@ -9,7 +9,8 @@ const POSE_FILES = {
 const PREFIX_FILES = { sword: 'player', hammer: 'hammer', bow: 'bow' };
 
 // 攻撃の種類ごとの予備動作。この構えを見て何が来るか読ませる
-const WINDUPS = ['overhead', 'throw', 'low', 'dash', 'scream'];
+const WINDUPS = ['overhead', 'throw', 'low', 'dash', 'scream',
+                 'thrust', 'spin', 'stomp', 'rain', 'charge', 'roll'];
 
 const IMAGE_SOURCES = {
   boss1: 'assets/boss1.png',
@@ -17,7 +18,6 @@ const IMAGE_SOURCES = {
   boss1_attack: 'assets/boss1_attack.png',
   boss1b: 'assets/boss1b.png',
   boss1b_attack: 'assets/boss1b_attack.png',
-  boss2: 'assets/boss2.png',
   arena: 'assets/bg_arena.jpg',
 };
 
@@ -25,6 +25,7 @@ for (const base of ['boss1', 'boss1b']) {
   for (const w of WINDUPS) {
     IMAGE_SOURCES[`${base}_windup_${w}`] = `assets/${base}_windup_${w}.png`;
   }
+  IMAGE_SOURCES[`${base}_exhausted`] = `assets/${base}_exhausted.png`;
 }
 for (const [prefix, file] of Object.entries(PREFIX_FILES)) {
   for (const pose of POSES) {

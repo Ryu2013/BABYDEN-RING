@@ -116,6 +116,10 @@ export function createUI({ onGoToSelect, onStartFight, onRetryFight, onBackToTit
       passwordError.textContent = errorMessage || '';
     },
 
+    setPasswordVisible(visible) {
+      document.getElementById('password-row').hidden = !visible;
+    },
+
     showSelect() {
       hideAll();
       selectScreen.hidden = false;

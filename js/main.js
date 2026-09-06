@@ -20,9 +20,6 @@ const WORLD_W = 1920;
 const GROUND_Y = 460;
 const STEP_MS = 1000 / 60;
 
-// 体当たり。すり抜けられる代わりに、敵の足元に居座ると削られる
-const CONTACT_DAMAGE = 6;
-const CONTACT_INTERVAL = 34;
 
 class Game {
   constructor() {
@@ -38,7 +35,6 @@ class Game {
     this.projectiles = [];
     this.effects = new Effects();
     this.cameraX = 0;
-    this.contactCooldown = 0;
   }
 
   _cameraTarget() {
@@ -70,7 +66,6 @@ class Game {
     this.boss = new Boss(def, 1320, GROUND_Y);
     this.projectiles = [];
     this.effects.clear();
-    this.contactCooldown = 0;
     this.cameraX = this._cameraTarget();
     this.timer.start();
     this.screen = Screen.FIGHT;
@@ -86,24 +81,15 @@ class Game {
     if (this.screen !== Screen.FIGHT) return;
     const { player, boss, effects } = this;
 
-    player.update(this.input);
+    player.update(this.input, boss.x);
     boss.update(player);
 
     this._resolveMelee();
     this._resolveProjectiles();
     this._drainEvents();
 
-    // 体は押し合わず、いつでもすり抜けられる。
-    // ただし重なったままだと踏まれるので、足元は安地にならない
-    if (this.contactCooldown > 0) this.contactCooldown--;
-    if (!boss.isDead && !player.isDead && !player.isInvulnerable
-      && aabbIntersect(player.getHurtbox(), boss.getHurtbox())) {
-      if (this.contactCooldown <= 0) {
-        player.takeDamage(CONTACT_DAMAGE, boss.x, { unblockable: true });
-        this.contactCooldown = CONTACT_INTERVAL;
-        effects.spark(player.x, player.y - player.h * 0.5, '#ffb1a0', 8, 5);
-      }
-    }
+    // 体は押し合わず、いつでもすり抜けられる。重なっているだけでは何も起きない。
+    // 敵の足元が安地にならないのは、近接攻撃の判定が自分の体の下まで届くから
 
     player.x = Math.max(40, Math.min(WORLD_W - 40, player.x));
     boss.x = Math.max(80, Math.min(WORLD_W - 80, boss.x));
@@ -151,6 +137,7 @@ class Game {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.update();
+      if (p.pending) continue;
       const box = p.getBox();
 
       if (p.owner === 'player' && !boss.isDead && aabbIntersect(box, boss.getHurtbox())) {
@@ -165,6 +152,10 @@ class Game {
         if (result !== 'miss') p.registerHit();
       }
 
+      if (p.kind === 'rain' && p.y > GROUND_Y) {
+        p.dead = true;
+        effects.spark(p.x, GROUND_Y, p.color, 7, 4);
+      }
       if (p.x < -80 || p.x > WORLD_W + 80 || p.y > LOGICAL_H + 80) p.dead = true;
       if (p.dead) {
         // 弓の矢が誰にも当たらず消えたら、空振り扱いで体幹が削れる
@@ -222,6 +213,16 @@ class Game {
           effects.spark(spec.x, spec.y, spec.color, 8, 5);
           break;
         }
+        case 'bossRain': {
+          for (const spec of boss.buildRain(ev.step, player)) {
+            this.projectiles.push(new Projectile(spec));
+          }
+          effects.text(boss.x, boss.y - boss.h * 1.2, '矢の雨', '#ffd76a');
+          break;
+        }
+        case 'bossExhausted':
+          effects.stagger(boss.x, boss.y - boss.h * 0.9, '息切れ！');
+          break;
         case 'bossSwing':
           effects.slash(boss.x + boss.facing * 60, boss.y - boss.h * 0.5, boss.facing,
             ev.step.unblockable ? 'rgba(255,190,60,0.9)' : 'rgba(255,110,90,0.85)', 76);
@@ -315,6 +316,8 @@ async function main() {
     onBackToTitle: () => game.backToTitle(),
   });
   game.ui = ui;
+  // ステージが1つしかないあいだは合言葉の入力欄を出さない
+  ui.setPasswordVisible(STAGES.length > 1);
   ui.bindTouchButtons(input);
   ui.showTitle();
 

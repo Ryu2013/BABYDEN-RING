@@ -5,6 +5,7 @@ export const Phase = {
   GAP: 'gap',
   RECOVERY: 'recovery',
   STAGGER: 'stagger',
+  EXHAUSTED: 'exhausted',
   EVOLVE: 'evolve',
   DEAD: 'dead',
 };
@@ -12,6 +13,7 @@ export const Phase = {
 const RECOVERY_VULNERABLE_MULTIPLIER = 1.5;
 const STAGGER_VULNERABLE_MULTIPLIER = 2.4;
 const STAGGER_FRAMES = 150;
+const EXHAUST_VULNERABLE_MULTIPLIER = 2.0;
 const EVOLVE_FRAMES = 130;
 const POISE_REGEN = 0.03;
 const POISE_DELAY = 100;
@@ -68,6 +70,10 @@ export class Boss {
     this.hp = form.maxHp;
     this.maxPoise = form.maxPoise;
     this.poise = form.maxPoise;
+    // スタミナは内部の数値としてだけ持つ（ゲージは見せない）。
+    // 尽きると息切れして大きな隙ができる
+    this.maxStamina = form.maxStamina ?? 100;
+    this.stamina = this.maxStamina;
     // 形態ごとに絵と大きさを差し替える
     this.spriteBase = form.sprite || this.def.sprite;
     this.spriteScale = form.spriteScale || this.def.spriteScale || 1.35;
@@ -82,6 +88,7 @@ export class Boss {
 
   get isDead() { return this.phase === Phase.DEAD; }
   get isStaggered() { return this.phase === Phase.STAGGER; }
+  get isExhausted() { return this.phase === Phase.EXHAUSTED; }
   get isEvolving() { return this.phase === Phase.EVOLVE; }
   get isFinalForm() { return this.formIndex >= this.def.forms.length - 1; }
 
@@ -100,6 +107,16 @@ export class Boss {
     return kind ? `${this.spriteBase}_windup_${kind}` : `${this.spriteBase}_windup`;
   }
 
+  // 予備動作以外でも専用の絵を出したい状態（息切れ・回避）
+  specialSpriteKey() {
+    if (this.isExhausted) return `${this.spriteBase}_exhausted`;
+    const step = this.currentStep();
+    if (step && step.windupSprite && this.phase === Phase.ACTIVE) {
+      return `${this.spriteBase}_windup_${step.windupSprite}`;
+    }
+    return null;
+  }
+
   // 攻撃ごとの溜め時間。第二形態では短くなる
   _windupOf(step) {
     return Math.max(6, Math.round(step.windup * (this.form.telegraphScale || 1)));
@@ -115,6 +132,9 @@ export class Boss {
 
   takeDamage(amount) {
     if (this.isDead || this.isEvolving) return;
+    // 回避行動の最中は当たらない
+    const step = this.currentStep();
+    if (step && step.invulnerable && this.phase === Phase.ACTIVE) return;
     this.hp = Math.max(0, this.hp - amount * this.vulnerableMultiplier);
     this.hitFlash = 6;
     if (this.hp <= 0) {
@@ -165,6 +185,17 @@ export class Boss {
       return;
     }
 
+    if (this.phase === Phase.EXHAUSTED) {
+      this.vulnerableMultiplier = EXHAUST_VULNERABLE_MULTIPLIER;
+      if (this.frame >= (this.form.exhaustFrames ?? 110)) {
+        this.stamina = this.maxStamina;
+        this.phase = Phase.COOLDOWN;
+        this.frame = 0;
+        this.vulnerableMultiplier = 1;
+      }
+      return;
+    }
+
     if (this.phase === Phase.STAGGER) {
       if (this.frame >= STAGGER_FRAMES) {
         this.poise = this.maxPoise;
@@ -175,14 +206,15 @@ export class Boss {
       return;
     }
 
-    // 突進中は向きを固定し、それ以外は常にプレイヤーを向く
-    if (this.phase !== Phase.ACTIVE) {
+    // 狙いを定められるのは待機中だけ。予備動作に入ったら振り向けない
+    if (this.phase === Phase.COOLDOWN) {
       this.facing = player.x < this.x ? -1 : 1;
     }
 
     switch (this.phase) {
       case Phase.COOLDOWN: {
         this.vulnerableMultiplier = 1;
+        this.stamina = Math.min(this.maxStamina, this.stamina + (this.form.staminaRegen ?? 0.22));
         const distance = Math.abs(player.x - this.x);
         const poiseRatio = this.poise / this.maxPoise;
         if (this.form.moveSpeed) {
@@ -206,7 +238,16 @@ export class Boss {
         const engaged = distance <= (this.form.engageRange ?? 340);
         const impatient = this.frame >= wait + (this.form.patienceFrames ?? 70);
         if (this.frame >= wait && (engaged || impatient)) {
+          if (this.stamina < (this.form.exhaustThreshold ?? 16)) {
+            // 振りすぎて息が上がった。大きな隙になる
+            this.phase = Phase.EXHAUSTED;
+            this.frame = 0;
+            this.currentPattern = null;
+            this._emit('bossExhausted');
+            break;
+          }
           this._pickPattern(player);
+          this.stamina -= this.currentPattern.staminaCost ?? 16;
           this.stepIndex = 0;
           this.phase = Phase.WINDUP;
           this.frame = 0;
@@ -223,6 +264,9 @@ export class Boss {
           this.hasHitThisAction = false;
           if (step.projectile) {
             this._emit('bossShoot', { step });
+          }
+          if (step.rain) {
+            this._emit('bossRain', { step });
           }
           if (step.hitbox) this._emit('bossSwing', { step });
         }
@@ -259,6 +303,8 @@ export class Boss {
       }
 
       case Phase.RECOVERY: {
+        // 振り終わりで少し息を整える
+        this.stamina = Math.min(this.maxStamina, this.stamina + (this.form.staminaRegen ?? 0.22));
         if (this.frame >= (this.currentPattern.recoveryFrames || 24)) {
           // 「投げてから一気に詰める」のような繋ぎを仕込む
           if (this.currentPattern.followUp
@@ -318,6 +364,8 @@ export class Boss {
     const pool = this.form.pool.map((name) => this.patterns[name]).filter(Boolean);
     const weighted = pool.map((p) => {
       let w = p.weight || 1;
+      // 大技は形態によって出る頻度を変える
+      if (p.big) w *= this.form.bigMoveScale ?? 1;
       if (distance > 300) {
         // 離れられたら飛び道具と突進。近接技はまず選ばない
         w *= p.longRange ? 3.2 : 0.25;
@@ -340,10 +388,21 @@ export class Boss {
   _stepBox(step, extraReach = 0) {
     const hb = step.hitbox;
     if (!hb) return null;
-    const w = hb.w + extraReach;
-    const x = hb.centered
-      ? this.x - w / 2
-      : (this.facing === 1 ? this.x + hb.offsetX : this.x - hb.offsetX - w);
+    let w = hb.w + extraReach;
+    let x;
+    if (hb.centered) {
+      x = this.x - w / 2;
+    } else {
+      x = this.facing === 1 ? this.x + hb.offsetX : this.x - hb.offsetX - w;
+      // 判定を自分の足元まで広げる。すり抜けた相手が真下で安全にならないように
+      if (hb.coversSelf !== false) {
+        const back = this.x - (this.facing === 1 ? this.w / 2 : -this.w / 2);
+        const left = Math.min(x, back);
+        const right = Math.max(x + w, back);
+        x = left;
+        w = right - left;
+      }
+    }
     const y = this.y - this.h + hb.offsetY + this.h / 2 - hb.h / 2;
     return { x, y, w, h: hb.h };
   }
@@ -372,6 +431,34 @@ export class Boss {
     if (!step || !step.hitbox) return null;
     const box = this._stepBox(step);
     return { ...box, damage: this._damageOf(step), unblockable: !!step.unblockable };
+  }
+
+  // 空から降ってくる矢。プレイヤーの周りに散らして、少しずつ落とす
+  buildRain(step, player) {
+    const r = step.rain;
+    const out = [];
+    for (let i = 0; i < r.count; i++) {
+      const t = r.count === 1 ? 0.5 : i / (r.count - 1);
+      const x = player.x - r.spread / 2 + r.spread * t + (Math.random() - 0.5) * 60;
+      out.push({
+        owner: 'boss',
+        kind: 'rain',
+        x,
+        y: -90 - Math.random() * 60,
+        vx: 0,
+        vy: r.vy,
+        gravity: r.gravity,
+        w: r.w,
+        h: r.h,
+        life: 220,
+        pierce: 0,
+        damage: this._damageOf({ damage: r.damage }),
+        unblockable: !!r.unblockable,
+        spawnDelay: Math.round(i * (r.interval ?? 5)),
+        color: r.color || '#ffd76a',
+      });
+    }
+    return out;
   }
 
   // ボスが放つ飛び道具の仕様。main.js が Projectile に変換する
