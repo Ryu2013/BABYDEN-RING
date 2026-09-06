@@ -3,6 +3,28 @@ import { CHARGE_LEVELS } from './entities/player.js';
 
 const DEBUG_HITBOX = new URLSearchParams(location.search).has('debug');
 
+// 闘技場の端。ここから先へは行けないことを柱で示す
+function drawArenaEdges(ctx, worldW, logicalH, groundY) {
+  if (!worldW) return;
+  ctx.save();
+  for (const [x, dir] of [[0, 1], [worldW, -1]]) {
+    const g = ctx.createLinearGradient(x, 0, x + dir * 90, 0);
+    g.addColorStop(0, 'rgba(4,5,9,0.85)');
+    g.addColorStop(1, 'rgba(4,5,9,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(x, x + dir * 90), 0, 90, logicalH);
+  }
+  ctx.strokeStyle = 'rgba(200,163,73,0.16)';
+  ctx.lineWidth = 2;
+  for (const x of [8, worldW - 8]) {
+    ctx.beginPath();
+    ctx.moveTo(x, groundY - 200);
+    ctx.lineTo(x, groundY + 8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // 生成された元絵は転がりのポーズだけ左向きに描かれている
 function sourceFacing(key) {
   return key.endsWith('Roll') ? -1 : 1;
@@ -41,7 +63,7 @@ function drawBox(ctx, box, color) {
   ctx.restore();
 }
 
-export function render(ctx, { screen, player, boss, projectiles, effects, logicalW, logicalH, groundY }) {
+export function render(ctx, { screen, player, boss, projectiles, effects, logicalW, logicalH, worldW, cameraX = 0, groundY }) {
   ctx.clearRect(0, 0, logicalW, logicalH);
   ctx.save();
 
@@ -51,8 +73,16 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
     ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   }
 
+  // 背景はカメラより遅く流して奥行きを出す。1枚では足りないので
+  // 2枚並べ、継ぎ目が目立たないよう2枚目は左右反転する
   if (images.arena) {
+    const bgX = -cameraX * 0.55;
+    ctx.drawImage(images.arena, bgX, 0, logicalW, logicalH);
+    ctx.save();
+    ctx.translate(bgX + logicalW * 2, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(images.arena, 0, 0, logicalW, logicalH);
+    ctx.restore();
     ctx.fillStyle = 'rgba(10,12,20,0.35)';
     ctx.fillRect(0, 0, logicalW, logicalH);
   } else {
@@ -73,6 +103,9 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
     return;
   }
 
+  // ここから先はワールド座標。カメラのぶんだけずらして描く
+  ctx.translate(-cameraX, 0);
+  drawArenaEdges(ctx, worldW, logicalH, groundY);
   drawBoss(ctx, boss, groundY);
   drawPlayer(ctx, player, groundY);
   if (projectiles) for (const p of projectiles) drawProjectile(ctx, p);

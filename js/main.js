@@ -15,8 +15,14 @@ import { loadAssets } from './assets.js';
 
 const LOGICAL_W = 960;
 const LOGICAL_H = 540;
+// 闘技場は画面の2倍の幅を持ち、カメラが横に追いかける
+const WORLD_W = 1920;
 const GROUND_Y = 460;
 const STEP_MS = 1000 / 60;
+
+// 体当たり。すり抜けられる代わりに、敵の足元に居座ると削られる
+const CONTACT_DAMAGE = 6;
+const CONTACT_INTERVAL = 34;
 
 class Game {
   constructor() {
@@ -31,6 +37,13 @@ class Game {
     this.boss = null;
     this.projectiles = [];
     this.effects = new Effects();
+    this.cameraX = 0;
+    this.contactCooldown = 0;
+  }
+
+  _cameraTarget() {
+    const mid = (this.player.x + this.boss.x) / 2;
+    return Math.max(0, Math.min(WORLD_W - LOGICAL_W, mid - LOGICAL_W / 2));
   }
 
   // タイトルで合言葉を確かめたあと、生まれ（主人公）の選択画面に進む
@@ -53,10 +66,12 @@ class Game {
   startFight(stageIndex) {
     const def = STAGES[stageIndex];
     this.stageIndex = stageIndex;
-    this.player = new Player(240, GROUND_Y, findCharacter(this.charId));
-    this.boss = new Boss(def, 720, GROUND_Y);
+    this.player = new Player(620, GROUND_Y, findCharacter(this.charId));
+    this.boss = new Boss(def, 1320, GROUND_Y);
     this.projectiles = [];
     this.effects.clear();
+    this.contactCooldown = 0;
+    this.cameraX = this._cameraTarget();
     this.timer.start();
     this.screen = Screen.FIGHT;
     this.ui.showFight(this.boss.name);
@@ -78,20 +93,21 @@ class Game {
     this._resolveProjectiles();
     this._drainEvents();
 
-    // 体同士は押し合う。ただしロール中は最後まですり抜けられる
-    // （無敵時間だけだと足の遅いキャラが敵を越えられず壁に詰められる）
-    if (player.state !== 'roll' && !player.isInvulnerable && !boss.isDead) {
-      const pb = player.getHurtbox();
-      const bb = boss.getHurtbox();
-      if (aabbIntersect(pb, bb)) {
-        const pushLeft = pb.x + pb.w - bb.x;
-        const pushRight = bb.x + bb.w - pb.x;
-        player.x += pushLeft < pushRight ? -pushLeft : pushRight;
+    // 体は押し合わず、いつでもすり抜けられる。
+    // ただし重なったままだと踏まれるので、足元は安地にならない
+    if (this.contactCooldown > 0) this.contactCooldown--;
+    if (!boss.isDead && !player.isDead && !player.isInvulnerable
+      && aabbIntersect(player.getHurtbox(), boss.getHurtbox())) {
+      if (this.contactCooldown <= 0) {
+        player.takeDamage(CONTACT_DAMAGE, boss.x, { unblockable: true });
+        this.contactCooldown = CONTACT_INTERVAL;
+        effects.spark(player.x, player.y - player.h * 0.5, '#ffb1a0', 8, 5);
       }
     }
 
-    player.x = Math.max(40, Math.min(LOGICAL_W - 40, player.x));
-    boss.x = Math.max(80, Math.min(LOGICAL_W - 80, boss.x));
+    player.x = Math.max(40, Math.min(WORLD_W - 40, player.x));
+    boss.x = Math.max(80, Math.min(WORLD_W - 80, boss.x));
+    this.cameraX += (this._cameraTarget() - this.cameraX) * 0.12;
 
     effects.update();
 
@@ -149,7 +165,7 @@ class Game {
         if (result !== 'miss') p.registerHit();
       }
 
-      if (p.x < -80 || p.x > LOGICAL_W + 80 || p.y > LOGICAL_H + 80) p.dead = true;
+      if (p.x < -80 || p.x > WORLD_W + 80 || p.y > LOGICAL_H + 80) p.dead = true;
       if (p.dead) {
         // 弓の矢が誰にも当たらず消えたら、空振り扱いで体幹が削れる
         if (p.owner === 'player' && p.hitCount === 0) player.notifyWhiff(p.kind);
@@ -267,6 +283,8 @@ class Game {
       effects: this.effects,
       logicalW: LOGICAL_W,
       logicalH: LOGICAL_H,
+      worldW: WORLD_W,
+      cameraX: this.cameraX,
       groundY: GROUND_Y,
     });
   }

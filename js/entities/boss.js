@@ -190,15 +190,22 @@ export class Boss {
             // 体幹が危ないので距離を取る
             this._moveToward(player, -this.form.moveSpeed * 0.8);
           } else if (distance > this.form.preferredRange) {
-            // 離されているほど速く詰める
-            const hustle = distance > 340 ? (this.form.dashSpeed || this.form.moveSpeed * 2.1) : this.form.moveSpeed;
+            // 離されているほど速く詰める。大きく開かれたら全力で走る
+            const dash = this.form.dashSpeed || this.form.moveSpeed * 2.1;
+            const hustle = distance > 620 ? dash * 1.4
+              : distance > 340 ? dash
+              : this.form.moveSpeed;
             this._moveToward(player, hustle);
           }
         }
         const wait = this._forcedNext
           ? (this.form.chainCooldown ?? 6)
           : this.form.cooldownFrames;
-        if (this.frame >= wait) {
+        // 間合いの外では立ち止まって撃たず、走って詰める。
+        // ただし詰めきれないまま待たされ続けたら、痺れを切らして飛び道具を投げる
+        const engaged = distance <= (this.form.engageRange ?? 340);
+        const impatient = this.frame >= wait + (this.form.patienceFrames ?? 70);
+        if (this.frame >= wait && (engaged || impatient)) {
           this._pickPattern(player);
           this.stepIndex = 0;
           this.phase = Phase.WINDUP;
@@ -297,12 +304,12 @@ export class Boss {
         return;
       }
       // 強攻撃を溜めているのを見たら高確率で躱す
-      if (player.isCharging && distance < 200 && Math.random() < 0.62) {
+      if (player.isCharging && distance < 220 && Math.random() < 0.62) {
         this.currentPattern = dodge;
         return;
       }
       // 回復しようとしているのは見逃さない。すぐ詰めて潰す
-      if (player.isHealing && this.patterns.lunge && distance > 150) {
+      if (player.isHealing && this.patterns.lunge && distance > 140) {
         this.currentPattern = this.patterns.lunge;
         return;
       }
