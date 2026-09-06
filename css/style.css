@@ -144,13 +144,10 @@ body {
   gap: 4px;
 }
 
-/* ユーザー提供のキーアート。矩形のままだと浮くので、縁を黒地に溶かす */
 #logo-image {
-  width: clamp(280px, 66%, 560px);
+  width: clamp(280px, 62%, 520px);
   height: auto;
-  -webkit-mask-image: radial-gradient(ellipse 64% 68% at 50% 47%, #000 44%, transparent 94%);
-  mask-image: radial-gradient(ellipse 64% 68% at 50% 47%, #000 44%, transparent 94%);
-  filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.95));
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.9));
 }
 
 .subtitle {

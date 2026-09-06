@@ -171,6 +171,12 @@ python3 tools/gen_assets.py bow_idle        # 一部だけ作り直す
 ~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/cutout.py
 ```
 
+タイトルロゴは生成画像ではなく `tools/make_logo.py` が書体（Cinzel）と図形から組み立てる。環状の紋章の中心におしゃぶりのシルエットを忍ばせてある。
+
+```bash
+~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/make_logo.py
+```
+
 プロンプトとシードは `tools/gen_assets.py` の `ASSETS` にまとまっている。主人公は素体プロンプト(`BABY_CORE`)とシードを使い回すことでポーズ違いでも同じキャラに見えるようにしている。キャラの同一性をさらに上げる方法は `characters/README.md` を参照。
 
 ## デプロイ（GitHub Pages）

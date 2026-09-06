@@ -21,12 +21,7 @@ OUT_DIR = PROJECT_ROOT / "assets"
 # 背景とみなす色の許容差(0-255のユークリッド距離)
 TOLERANCE = 34
 
-# 黒背景で生成し、輝度をアルファに変換して使うもの（発光する装飾）
-EMBLEM_ASSETS = {"logo_emblem"}
-
-TARGET_HEIGHT = {
-    "logo_diaper": 200,
-}
+TARGET_HEIGHT = {}
 
 # ポーズごとに切り抜き後の高さを揃えてしまうと、武器を振り上げた絵だけ
 # 体が小さく見える。そこで「元画像の中で被写体が占める縦の割合」を保ったまま
@@ -137,29 +132,6 @@ def process_background(name: str, path: Path):
     print(f"[bg ] {name}: 1280x720 -> {out_path.stat().st_size // 1024}KB")
 
 
-def process_emblem(name: str, path: Path):
-    """ロゴの紋章。明るさをそのままアルファにして、黒背景を溶かし込む。
-
-    背景が完全な黒ではないため、単純にscreen合成すると四角い縁が見えてしまう。
-    輝度をアルファに変換すれば、光っている金の部分だけが残る。
-    """
-    img = Image.open(path).convert("RGB")
-    scale = 520 / img.width
-    img = img.resize((520, round(img.height * scale)), Image.LANCZOS)
-
-    rgb = np.asarray(img).astype(np.float32)
-    luma = rgb.max(axis=2) / 255.0
-    # 暗部を落としつつ、金の部分はしっかり残す
-    alpha = np.clip((luma - 0.06) * 1.9, 0, 1)
-
-    out = img.convert("RGBA")
-    out.putalpha(Image.fromarray((alpha * 255).astype(np.uint8)))
-
-    out_path = OUT_DIR / f"{name}.png"
-    out.save(out_path, optimize=True)
-    print(f"[emb] {name}: {out.width}x{out.height} -> {out_path.stat().st_size // 1024}KB")
-
-
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     groups = {g: {} for g in SCALE_GROUPS}
@@ -167,9 +139,7 @@ def main():
 
     for path in sorted(RAW_DIR.glob("*.png")):
         name = path.stem
-        if name in EMBLEM_ASSETS:
-            process_emblem(name, path)
-        elif name.startswith("bg_"):
+        if name.startswith("bg_"):
             process_background(name, path)
         elif name in GROUP_OF:
             groups[GROUP_OF[name]][name] = path

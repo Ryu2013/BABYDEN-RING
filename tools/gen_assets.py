@@ -41,7 +41,7 @@ PLAYER_BASE = (
     "holding oversized greatsword, tiny knight, "
 )
 FLAT_BG = "solid pure white background, simple background, isolated on white, no shadow, full body"
-# 白いモチーフを切り抜くとき用。白背景だと輪郭が拾えないため緑地に出す
+# 暗い被写体を切り抜くとき用。白背景だと輪郭が拾えないため緑地に出す
 GREEN_BG = "solid flat chroma green background, simple background, no shadow"
 
 # ハンマーベイビー / ゆみベイビー。つるぎベイビーと兄弟に見えるよう素体は共通で、
@@ -162,15 +162,6 @@ ASSETS = {
         "height": 1024,
     },
     # ロゴの"BABY"に履かせるおむつ。白いので緑背景で出して切り抜く
-    "logo_diaper": {
-        "prompt": QUALITY
-        + ", a folded white cloth baby diaper, underwear only, object only, "
-        "flat lay, front view, simple cute illustration, centered, " + GREEN_BG,
-        "seed": 8888,
-        "width": 1024,
-        "height": 1024,
-        "negative_extra": "person, baby, body, legs, animal, bird, chick, creature, face, eyes, character, text, white background",
-    },
     "boss2": {
         "prompt": QUALITY
         + ", giant menacing teddy bear monster, torn stitches, glowing red eyes, "
@@ -181,18 +172,6 @@ ASSETS = {
         "height": 1024,
     },
     # タイトルロゴの紋章。黒背景のまま出力し、CSSのscreen合成で乗せるので切り抜き不要
-    "logo_emblem": {
-        "prompt": QUALITY
-        + ", ornate golden heraldic emblem, circular ring crest, "
-        "baby pacifier motif in the center, intricate filigree, laurel wreath, "
-        "gold and pale silver, glowing, symmetrical, dark fantasy, "
-        "solid pure black background, centered, no humans",
-        "seed": 31415,
-        "width": 1024,
-        "height": 1024,
-        "negative_extra": "text, letters, words, title, watermark, white background, person, face",
-    },
-    # --- ハンマーベイビー ---
     "hammer_idle": {
         "prompt": QUALITY + ", " + HAMMER_BASE
         + "standing, side view, facing right, hammer resting on shoulder, " + FLAT_BG,
