@@ -164,16 +164,22 @@ export class Player {
 
   chargeInfo() {
     const level = CHARGE_LEVELS[this.chargeLevel] || CHARGE_LEVELS[0];
-    const next = CHARGE_LEVELS[this.chargeLevel + 1];
+    const next = this.chargeLevel < this.maxChargeLevel ? CHARGE_LEVELS[this.chargeLevel + 1] : null;
     const progress = next
       ? (this.chargeFrames - level.atFrame) / (next.atFrame - level.atFrame)
       : 1;
     return { index: this.chargeLevel, level, progress: Math.max(0, Math.min(1, progress)) };
   }
 
+  // 溜められる段階はキャラごとに違う（弓は溜められず、ハンマーは3段階まで）
+  get maxChargeLevel() {
+    const cap = this.char.maxChargeLevel;
+    return Math.min(CHARGE_LEVELS.length - 1, cap === undefined ? CHARGE_LEVELS.length - 1 : cap);
+  }
+
   _levelForFrames(frames) {
     let level = 0;
-    for (let i = 0; i < CHARGE_LEVELS.length; i++) {
+    for (let i = 0; i <= this.maxChargeLevel; i++) {
       if (frames >= CHARGE_LEVELS[i].atFrame) level = i;
     }
     return level;
@@ -322,7 +328,11 @@ export class Player {
           this.chargeLevel = level;
           this._emit('chargeStep', { level });
         }
-        if (!input.isDown('attack') || this.chargeFrames >= CHARGE_MAX_FRAMES) {
+        const capped = this.chargeLevel >= this.maxChargeLevel;
+        const capFrame = CHARGE_LEVELS[this.maxChargeLevel].atFrame + 34;
+        if (!input.isDown('attack')
+          || this.chargeFrames >= CHARGE_MAX_FRAMES
+          || (capped && this.chargeFrames >= capFrame)) {
           this._releaseCharge();
         }
         break;

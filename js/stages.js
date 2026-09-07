@@ -5,7 +5,7 @@
 // 連撃は一撃ごとに windupSprite を変え、何発来るかを構えで読ませる。
 
 const DOLL_PATTERNS = {
-  // --- 通常 ---
+  // --- 通常。弱い技ほど予備動作が短く、すぐ飛んでくる ---
 
   swing: {
     followUp: 'combo2',
@@ -13,7 +13,7 @@ const DOLL_PATTERNS = {
     staminaCost: 14,
     weight: 2.2,
     recoveryFrames: 19,
-    steps: [{ windup: 34, active: 9, damage: 20, hitbox: { w: 115, h: 74, offsetX: 42, offsetY: 0 } }],
+    steps: [{ windup: 26, active: 9, damage: 20, hitbox: { w: 115, h: 74, offsetX: 42, offsetY: 0 } }],
   },
 
   // ディレイ振り下ろし。溜めが長く、早漏ロールを狩る
@@ -31,8 +31,8 @@ const DOLL_PATTERNS = {
     weight: 1.7,
     recoveryFrames: 20,
     steps: [
-      { windup: 28, active: 8, gap: 8, damage: 14, hitbox: { w: 104, h: 70, offsetX: 40, offsetY: 0 } },
-      { windupSprite: 'spin', windup: 14, active: 8, damage: 19, hitbox: { w: 128, h: 78, offsetX: 38, offsetY: 0 } },
+      { windup: 22, active: 8, gap: 8, damage: 14, hitbox: { w: 104, h: 70, offsetX: 40, offsetY: 0 } },
+      { windupSprite: 'spin', windup: 12, active: 8, damage: 19, hitbox: { w: 128, h: 78, offsetX: 38, offsetY: 0 } },
     ],
   },
 
@@ -42,9 +42,9 @@ const DOLL_PATTERNS = {
     weight: 1.3,
     recoveryFrames: 26,
     steps: [
-      { windup: 30, active: 7, gap: 7, damage: 12, hitbox: { w: 100, h: 68, offsetX: 38, offsetY: 0 } },
-      { windupSprite: 'thrust', windup: 12, active: 7, gap: 6, damage: 13, hitbox: { w: 132, h: 50, offsetX: 40, offsetY: -6 } },
-      { windupSprite: 'overhead', windup: 26, active: 10, damage: 24, hitbox: { w: 126, h: 96, offsetX: 42, offsetY: -6 } },
+      { windup: 24, active: 7, gap: 7, damage: 12, hitbox: { w: 100, h: 68, offsetX: 38, offsetY: 0 } },
+      { windupSprite: 'thrust', windup: 10, active: 7, gap: 6, damage: 13, hitbox: { w: 132, h: 50, offsetX: 40, offsetY: -6 } },
+      { windupSprite: 'overhead', windup: 22, active: 10, damage: 24, hitbox: { w: 126, h: 96, offsetX: 42, offsetY: -6 } },
     ],
   },
 
@@ -58,8 +58,8 @@ const DOLL_PATTERNS = {
     recoveryFrames: 18,
     longRange: true,
     steps: [{
-      windup: 36, active: 5, damage: 18,
-      projectile: { speed: 9.2, w: 40, h: 40, life: 190, offsetY: -86, color: '#ffd76a' },
+      windup: 32, active: 5, damage: 18,
+      projectile: { speed: 9.2, w: 40, h: 40, life: 190, offsetY: -86, color: '#e8c98a' },
     }],
   },
 
@@ -69,7 +69,7 @@ const DOLL_PATTERNS = {
     staminaCost: 16,
     weight: 1.3,
     recoveryFrames: 18,
-    steps: [{ windup: 30, active: 9, damage: 20, hitbox: { w: 210, h: 40, offsetX: 10, offsetY: 50 } }],
+    steps: [{ windup: 26, active: 9, damage: 20, hitbox: { w: 210, h: 40, offsetX: 10, offsetY: 50 } }],
   },
 
   // ガード不可のおしり落とし。ロールでしか躱せない
@@ -79,7 +79,7 @@ const DOLL_PATTERNS = {
     weight: 1.1,
     recoveryFrames: 27,
     steps: [{
-      windup: 48, active: 10, damage: 34, unblockable: true,
+      windup: 52, active: 10, damage: 34, unblockable: true,
       hitbox: { w: 196, h: 116, offsetX: 0, offsetY: 8, centered: true },
     }],
   },
@@ -93,7 +93,7 @@ const DOLL_PATTERNS = {
     weight: 1.4,
     recoveryFrames: 24,
     longRange: true,
-    steps: [{ windup: 34, active: 14, damage: 23, lungeSpeed: 11, hitbox: { w: 88, h: 100, offsetX: 32, offsetY: 4 } }],
+    steps: [{ windup: 30, active: 14, damage: 23, lungeSpeed: 11, hitbox: { w: 88, h: 100, offsetX: 32, offsetY: 4 } }],
   },
 
   // 回避。転がって距離を取る。この間は当たらない
@@ -112,7 +112,7 @@ const DOLL_PATTERNS = {
     weight: 1.3,
     recoveryFrames: 29,
     steps: [{
-      windup: 52, active: 16, damage: 30, unblockable: true,
+      windup: 58, active: 16, damage: 30, unblockable: true,
       hitbox: { w: 350, h: 170, offsetX: 0, offsetY: -10, centered: true },
     }],
   },
@@ -123,55 +123,58 @@ const DOLL_PATTERNS = {
     weight: 1.4,
     recoveryFrames: 27,
     steps: [
-      { windup: 20, active: 6, gap: 5, damage: 11, hitbox: { w: 100, h: 66, offsetX: 38, offsetY: 0 } },
-      { windupSprite: 'spin', windup: 8, active: 6, gap: 5, damage: 11, hitbox: { w: 118, h: 74, offsetX: 38, offsetY: 0 } },
-      { windupSprite: 'thrust', windup: 8, active: 6, gap: 5, damage: 13, hitbox: { w: 136, h: 50, offsetX: 40, offsetY: -6 } },
-      { windupSprite: 'overhead', windup: 18, active: 9, damage: 22, hitbox: { w: 130, h: 96, offsetX: 42, offsetY: -6 } },
+      { windup: 16, active: 6, gap: 5, damage: 11, hitbox: { w: 100, h: 66, offsetX: 38, offsetY: 0 } },
+      { windupSprite: 'spin', windup: 7, active: 6, gap: 5, damage: 11, hitbox: { w: 118, h: 74, offsetX: 38, offsetY: 0 } },
+      { windupSprite: 'thrust', windup: 7, active: 6, gap: 5, damage: 13, hitbox: { w: 136, h: 50, offsetX: 40, offsetY: -6 } },
+      { windupSprite: 'overhead', windup: 16, active: 9, damage: 22, hitbox: { w: 130, h: 96, offsetX: 42, offsetY: -6 } },
     ],
   },
 
-  // --- 大技。頻度は低いが、対処法が限られる ---
+  // --- 大技。予備動作を2モーションに分けて長く取る。
+  //     「構えが変わった＝大技が来る」と分かるようにするため ---
 
   // 突き。速く長いのでロールでは抜けにくい。早めに動くかジャンプ
   pierce: {
-    windupSprite: 'thrust',
     big: true,
     staminaCost: 30,
     weight: 0.55,
     recoveryFrames: 34,
     longRange: true,
-    steps: [{
-      windup: 32, active: 16, damage: 34, lungeSpeed: 21,
-      hitbox: { w: 150, h: 46, offsetX: 26, offsetY: -8, coversSelf: false },
-    }],
+    steps: [
+      // 1モーション目: 身構える
+      { windupSprite: 'dash', windup: 36, active: 3, gap: 6 },
+      // 2モーション目: 突っ込む
+      { windupSprite: 'thrust', windup: 30, active: 16, damage: 34, lungeSpeed: 21,
+        hitbox: { w: 150, h: 46, offsetX: 26, offsetY: -8, coversSelf: false } },
+    ],
   },
 
-  // 地面全体の足踏み。ジャンプでしか避けられない
+  // 地面全体の足踏み。ジャンプでしか避けられないので、床を赤く光らせて予告する
   groundStomp: {
-    windupSprite: 'stomp',
     big: true,
     staminaCost: 34,
     weight: 0.5,
     recoveryFrames: 40,
-    steps: [{
-      windup: 54, active: 14, damage: 32, unblockable: true,
-      hitbox: { w: 2200, h: 56, offsetX: 0, offsetY: 46, centered: true },
-    }],
+    steps: [
+      { windupSprite: 'charge', windup: 42, active: 3, gap: 5, floorWarning: true },
+      { windupSprite: 'stomp', windup: 46, active: 14, damage: 32, unblockable: true, floorWarning: true,
+        hitbox: { w: 2200, h: 56, offsetX: 0, offsetY: 46, centered: true } },
+    ],
   },
 
   // 空から矢が降る。落ちてくる位置を見て動く
   arrowRain: {
-    windupSprite: 'rain',
     big: true,
     staminaCost: 32,
     weight: 0.45,
     recoveryFrames: 40,
     longRange: true,
-    steps: [{
-      windup: 56, active: 46,
-      rain: { count: 9, spread: 780, interval: 6, vy: 7.5, gravity: 0.42,
-              w: 20, h: 66, damage: 16, color: '#ffd76a' },
-    }],
+    steps: [
+      { windupSprite: 'charge', windup: 38, active: 3, gap: 5 },
+      { windupSprite: 'rain', windup: 44, active: 46,
+        rain: { count: 9, spread: 780, interval: 6, vy: 7.5, gravity: 0.42,
+                w: 22, h: 74, damage: 16, color: '#e8c98a' } },
+    ],
   },
 
   // 溜めてから叩きつける。溜めの構えを見たら距離を取るか殴りに行く
@@ -181,8 +184,8 @@ const DOLL_PATTERNS = {
     weight: 0.5,
     recoveryFrames: 42,
     steps: [
-      { windupSprite: 'charge', windup: 72, active: 4 },
-      { windupSprite: 'overhead', windup: 14, active: 12, damage: 40, unblockable: true,
+      { windupSprite: 'charge', windup: 74, active: 4, gap: 6 },
+      { windupSprite: 'overhead', windup: 22, active: 12, damage: 40, unblockable: true,
         hitbox: { w: 270, h: 180, offsetX: 0, offsetY: 0, centered: true } },
     ],
   },

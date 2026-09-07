@@ -3,6 +3,40 @@ import { CHARGE_LEVELS } from './entities/player.js';
 
 const DEBUG_HITBOX = new URLSearchParams(location.search).has('debug');
 
+// 床全体に届く技の予告。ジャンプでしか避けられない技なので、
+// 発動前に床そのものを赤く光らせて知らせる
+function drawFloorWarning(ctx, boss, worldW, logicalH, groundY) {
+  const pattern = boss.currentPattern;
+  if (!pattern || !pattern.steps.some((st) => st.floorWarning)) return;
+
+  let intensity;
+  if (boss.phase === 'windup') intensity = 0.14 + 0.5 * boss.getTelegraphProgress();
+  else if (boss.phase === 'gap') intensity = 0.5;
+  else if (boss.phase === 'active') intensity = 0.95;
+  else return;
+
+  const pulse = 0.85 + 0.15 * Math.sin(boss.frame * 0.35);
+  const a = intensity * pulse;
+  const top = groundY - 64;
+
+  ctx.save();
+  const g = ctx.createLinearGradient(0, top, 0, logicalH);
+  g.addColorStop(0, `rgba(220,40,30,0)`);
+  g.addColorStop(0.45, `rgba(230,50,35,${a * 0.55})`);
+  g.addColorStop(1, `rgba(255,90,50,${a * 0.9})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, top, worldW || 1920, logicalH - top);
+
+  // 地面のラインを走らせて「床全体」だと分かるようにする
+  ctx.strokeStyle = `rgba(255,150,90,${a})`;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 2);
+  ctx.lineTo(worldW || 1920, groundY + 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // 闘技場の端。ここから先へは行けないことを柱で示す
 function drawArenaEdges(ctx, worldW, logicalH, groundY) {
   if (!worldW) return;
@@ -106,6 +140,7 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
   // ここから先はワールド座標。カメラのぶんだけずらして描く
   ctx.translate(-cameraX, 0);
   drawArenaEdges(ctx, worldW, logicalH, groundY);
+  drawFloorWarning(ctx, boss, worldW, logicalH, groundY);
   drawBoss(ctx, boss, groundY);
   drawPlayer(ctx, player, groundY);
   if (projectiles) for (const p of projectiles) drawProjectile(ctx, p);
@@ -124,41 +159,87 @@ export function render(ctx, { screen, player, boss, projectiles, effects, logica
   ctx.restore();
 }
 
+// 矢を一本描く。原点を中心に +X 方向を向いた状態で描く
+function drawArrow(ctx, len, accent) {
+  const shaft = Math.max(2, len * 0.05);
+  const head = len * 0.17;
+
+  // 柄（木）
+  const wood = ctx.createLinearGradient(0, -shaft, 0, shaft);
+  wood.addColorStop(0, '#d8b183');
+  wood.addColorStop(0.5, '#a8794a');
+  wood.addColorStop(1, '#6f4b2a');
+  ctx.fillStyle = wood;
+  ctx.fillRect(-len / 2, -shaft / 2, len - head * 0.6, shaft);
+
+  // 鏃（金属）
+  const steel = ctx.createLinearGradient(0, -head * 0.5, 0, head * 0.5);
+  steel.addColorStop(0, '#f2f6fb');
+  steel.addColorStop(0.5, '#b9c6d6');
+  steel.addColorStop(1, '#6d7c8e');
+  ctx.fillStyle = steel;
+  ctx.beginPath();
+  ctx.moveTo(len / 2, 0);
+  ctx.lineTo(len / 2 - head, -head * 0.42);
+  ctx.lineTo(len / 2 - head * 0.72, 0);
+  ctx.lineTo(len / 2 - head, head * 0.42);
+  ctx.closePath();
+  ctx.fill();
+
+  // 矢羽
+  ctx.fillStyle = accent;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(-len / 2 - len * 0.04, side * shaft * 0.4);
+    ctx.lineTo(-len / 2 + len * 0.2, side * len * 0.12);
+    ctx.lineTo(-len / 2 + len * 0.3, side * shaft * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // 筈の巻き
+  ctx.fillStyle = '#3b2a1c';
+  ctx.fillRect(-len / 2 - len * 0.03, -shaft * 0.8, len * 0.05, shaft * 1.6);
+}
+
+// ガラガラ。玉と柄で「おもちゃ」に見せる
+function drawRattle(ctx, p) {
+  ctx.rotate(p.age * 0.22);
+  const r = p.w / 2;
+  ctx.fillStyle = '#6f4b2a';
+  ctx.fillRect(-r * 0.16, 0, r * 0.32, r * 1.5);
+  const ball = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.15, 0, 0, r);
+  ball.addColorStop(0, '#fff4d2');
+  ball.addColorStop(1, '#c99a4a');
+  ctx.fillStyle = ball;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(120,80,30,0.55)';
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawProjectile(ctx, p) {
   if (p.pending) return;
   ctx.save();
   ctx.translate(p.x, p.y);
   if (p.kind === 'rain') {
-    // 落ちてくる矢。真下を向いた光の筋
-    ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 12;
-    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath();
-    ctx.moveTo(-p.w / 2, p.h / 2 - 12);
-    ctx.lineTo(p.w / 2, p.h / 2 - 12);
-    ctx.lineTo(0, p.h / 2 + 8);
-    ctx.closePath();
-    ctx.fill();
+    // 空から落ちてくる矢。真下を向く
+    ctx.rotate(Math.PI / 2);
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 6;
+    drawArrow(ctx, p.h, p.color || '#c0392b');
   } else if (p.owner === 'player') {
-    // 矢は進行方向に伸びた光の筋として描く
-    ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 12;
-    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.fillRect(Math.sign(p.vx) * (p.w / 2 - 8) - 4, -p.h / 2, 8, p.h);
+    ctx.rotate(p.vx < 0 ? Math.PI : 0);
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 5;
+    drawArrow(ctx, p.w, p.color === '#eaf7ff' ? '#8fd6a0' : p.color);
   } else {
-    ctx.rotate(p.age * 0.22);
-    ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillRect(-p.w / 6, -p.h / 2 - 4, p.w / 3, 8);
+    drawRattle(ctx, p);
   }
   ctx.restore();
 }
@@ -480,7 +561,7 @@ function drawChargeAura(ctx, player, height) {
     ctx.stroke();
   }
   // 次の段階までの進み具合
-  if (info.index < CHARGE_LEVELS.length - 1) {
+  if (info.index < player.maxChargeLevel) {
     ctx.globalAlpha = 0.95;
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.lineWidth = 3;

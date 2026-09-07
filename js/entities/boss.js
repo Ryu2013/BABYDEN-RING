@@ -117,9 +117,12 @@ export class Boss {
     return null;
   }
 
-  // 攻撃ごとの溜め時間。第二形態では短くなる
+  // 攻撃ごとの溜め時間。第二形態では短くなるが、
+  // 大技だけは読む時間を残すため縮み方を抑える
   _windupOf(step) {
-    return Math.max(6, Math.round(step.windup * (this.form.telegraphScale || 1)));
+    const base = this.form.telegraphScale || 1;
+    const scale = this.currentPattern && this.currentPattern.big ? Math.max(base, 0.88) : base;
+    return Math.max(6, Math.round(step.windup * scale));
   }
 
   _damageOf(step) {

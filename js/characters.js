@@ -20,8 +20,9 @@ const SWORD = {
   moveSpeed: 4.9,
   jumpVelocity: -10.5,
   flasks: 3,
+  maxChargeLevel: 1,   // 溜めは2段階まで
   // 選択画面に出す性能バー(0-100)
-  stats: { '攻撃力': 52, '防御力': 55, '素早さ': 62, 'スタミナ': 55, '体幹': 55, '間合い': 40 },
+  stats: { '攻撃力': 52, '防御力': 55, '素早さ': 62, 'スタミナ': 55, '体幹': 55, '間合い': 52 },
   timings: {
     roll: {
       startup: 2, active: 9, recovery: 6,
@@ -32,13 +33,13 @@ const SWORD = {
     lightAttack: {
       startup: 3, active: 4, recovery: 7,
       cancelFrom: 9, damage: 8, stamina: 22, poise: 1,
-      hitbox: { w: 62, h: 44, offsetX: 30, offsetY: -8 },
+      hitbox: { w: 80, h: 48, offsetX: 32, offsetY: -8 },
     },
     // 強: 出が遅く隙も大きいが、威力とリーチが段違い。溜められる
     heavyAttack: {
       startup: 14, active: 6, recovery: 18,
       cancelFrom: 26, damage: 34, stamina: 42, poise: 3,
-      hitbox: { w: 96, h: 60, offsetX: 32, offsetY: -4 },
+      hitbox: { w: 120, h: 66, offsetX: 34, offsetY: -4 },
     },
   },
 };
@@ -62,6 +63,7 @@ const HAMMER = {
   moveSpeed: 4.1,
   jumpVelocity: -9.6,
   flasks: 3,
+  maxChargeLevel: 2,   // 溜めは3段階まで
   stats: { '攻撃力': 88, '防御力': 90, '素早さ': 28, 'スタミナ': 44, '体幹': 82, '間合い': 52 },
   timings: {
     roll: {
@@ -101,6 +103,7 @@ const BOW = {
   moveSpeed: 4.9,
   jumpVelocity: -11,
   flasks: 3,
+  maxChargeLevel: 0,   // 溜められない（1段階のみ）
   stats: { '攻撃力': 16, '防御力': 18, '素早さ': 72, 'スタミナ': 60, '体幹': 38, '間合い': 74 },
   timings: {
     roll: {
@@ -113,12 +116,12 @@ const BOW = {
     lightAttack: {
       startup: 6, active: 3, recovery: 13,
       cancelFrom: 17, damage: 5, stamina: 27, poise: 1,
-      projectile: { speed: 12.5, w: 34, h: 12, life: 24, offsetY: -46 },
+      projectile: { speed: 12.5, w: 46, h: 12, life: 24, offsetY: -46 },
     },
     heavyAttack: {
       startup: 21, active: 4, recovery: 22,
       cancelFrom: 32, damage: 14, stamina: 54, poise: 3,
-      projectile: { speed: 15.5, w: 48, h: 16, life: 22, offsetY: -48, pierce: 1 },
+      projectile: { speed: 15.5, w: 62, h: 14, life: 22, offsetY: -48, pierce: 1 },
     },
   },
 };
