@@ -205,6 +205,20 @@ python3 tools/gen_assets.py bow_idle        # 一部だけ作り直す
 ~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/make_logo.py
 ```
 
+手描きや外部で用意した「複数モーションが1枚に並んだ絵」を取り込む場合は `tools/split_sheet.py` を使う。背景を抜いて1体ずつに切り分ける。
+
+```bash
+# 自動分割（繋がっている塊を1体とみなす）。左から順に名前を割り当てられる
+~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/split_sheet.py sheet.png \
+    --out assets/raw --prefix boss1_windup --names thrust spin stomp
+
+# 等間隔に並んでいるなら格子で割る
+... --grid 4x2
+
+# 背景が抜けきらない／抜けすぎるときは --tolerance、
+# 武器が体から離れて別扱いされるときは --merge を調整する
+```
+
 プロンプトとシードは `tools/gen_assets.py` の `ASSETS` にまとまっている。主人公は素体プロンプト(`BABY_CORE`)とシードを使い回すことでポーズ違いでも同じキャラに見えるようにしている。キャラの同一性をさらに上げる方法は `characters/README.md` を参照。
 
 ## デプロイ（GitHub Pages）
