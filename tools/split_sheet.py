@@ -72,6 +72,40 @@ def split_auto(img: Image.Image, opaque: np.ndarray, merge: int, min_area: int, 
     return boxes
 
 
+def drop_enclosed_background(piece: Image.Image, bg, tolerance: int = 14) -> Image.Image:
+    """囲まれて取り残された背景（説明用の枠の内側など）を消す。
+
+    縁から繋がっていない背景は最初の切り抜きでは残ってしまう。
+    髪や服を巻き込まないよう「色が一様で矩形にみっちり詰まっている」ものだけを消す。
+    """
+    a = np.asarray(piece).copy()
+    rgb = a[..., :3].astype(np.int16)
+    al = a[..., 3] > 60
+    dist = np.sqrt(((rgb - np.array(bg)) ** 2).sum(axis=2))
+    bgish = al & (dist < tolerance)
+    if bgish.sum() < 1500:
+        return piece
+
+    labels, count = ndimage.label(bgish)
+    changed = False
+    for i in range(1, count + 1):
+        m = labels == i
+        area = int(m.sum())
+        if area < 2000:
+            continue
+        ys, xs = np.nonzero(m)
+        fill = area / ((ys.max() - ys.min() + 1) * (xs.max() - xs.min() + 1))
+        var = float(rgb[m].std(axis=0).mean())
+        if var < 4.0 and fill > 0.85:
+            a[..., 3] = np.where(m, 0, a[..., 3])
+            changed = True
+    if not changed:
+        return piece
+    out = Image.fromarray(a, "RGBA")
+    bbox = out.getbbox()
+    return out.crop(bbox) if bbox else out
+
+
 def keep_largest(piece: Image.Image, pad: int = 6) -> Image.Image:
     """1コマの中から本体だけを残す。
 
@@ -153,6 +187,9 @@ def main():
     args = ap.parse_args()
 
     img = Image.open(args.image)
+    corners = np.asarray(img.convert("RGB"))
+    bg_color = np.concatenate([corners[0, 0], corners[0, -1],
+                               corners[-1, 0], corners[-1, -1]]).reshape(4, 3).mean(axis=0)
     bg = background_mask(img, args.tolerance)
     opaque = ndimage.binary_erosion(~bg, iterations=1)
     rgba = to_rgba(img, opaque)
@@ -174,6 +211,7 @@ def main():
         if bbox:
             piece = piece.crop(bbox)
         if not args.no_clean:
+            piece = drop_enclosed_background(piece, bg_color, args.tolerance // 2 + 4)
             piece = keep_largest(piece)
         if args.names and i < len(args.names):
             name = f"{args.prefix}_{args.names[i]}" if args.prefix else args.names[i]

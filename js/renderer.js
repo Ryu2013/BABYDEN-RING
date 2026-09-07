@@ -59,9 +59,12 @@ function drawArenaEdges(ctx, worldW, logicalH, groundY) {
   ctx.restore();
 }
 
-// 生成された元絵は転がりのポーズだけ左向きに描かれている
+// 元絵がどちら向きに描かれているかはポーズによって違う。
+// 右向きが基本で、ここに挙げたポーズだけ左向きに描かれている
+const LEFT_FACING_POSES = ['Roll', 'Heal', 'Hurt'];
+
 function sourceFacing(key) {
-  return key.endsWith('Roll') ? -1 : 1;
+  return LEFT_FACING_POSES.some((pose) => key.endsWith(pose)) ? -1 : 1;
 }
 
 function drawSprite(ctx, img, key, { x, bottomY, height, facing, rotation = 0, alpha = 1, filter = null }) {

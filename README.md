@@ -199,6 +199,8 @@ combo3: {
 
 溜めの段階がキャラごとに違うため、`bow_charge2` `bow_charge3` `player_charge3` は現状の設定では使われない。
 
+元絵の向きはポーズによって違う。基本は右向きで、**ロール・エスト瓶・被弾の3つだけ左向き**に描かれている。この対応は `js/renderer.js` の `LEFT_FACING_POSES` に書いてあり、ゲーム内の向きと合わない絵は描画時に左右反転される。ポーズを追加・差し替えするときはここを確認すること。
+
 ## 素材の生成
 
 ローカルのComfyUIを使う。先にサーバーを起動しておく。
@@ -225,7 +227,16 @@ python3 tools/gen_assets.py bow_idle        # 一部だけ作り直す
 ~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/make_logo.py
 ```
 
-ここで生成するのはボスと背景。主人公のポーズは手描きシートから切り出す（`tools/split_sheet.py`）。背景を抜いて1体ずつに切り分け、見出しの文字や枠は自動で除去する。
+ここで生成するのはボスと背景。主人公のポーズは手描きシートから切り出す。背景を抜いて1体ずつに切り分け、見出しの文字や枠は自動で除去する。
+
+```bash
+V=~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python
+$V tools/split_sheet.py sheet_sword.png --out /tmp/sheet_out/sword --prefix sword \
+   --tolerance 34 --merge 8 --min-area 4000 --min-height 110
+SHEET_DIR=/tmp/sheet_out $V tools/install_sheets.py
+```
+
+`install_sheets.py` が並び順をゲーム内の名前に対応づけ、待機ポーズを基準にした1つの倍率で全ポーズを書き出す。
 
 ```bash
 # 自動分割（繋がっている塊を1体とみなす）。左から順に名前を割り当てられる
