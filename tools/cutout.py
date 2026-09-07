@@ -31,27 +31,16 @@ BOSS_WINDUPS = ("overhead", "throw", "low", "dash", "scream",
                 "thrust", "spin", "stomp", "rain", "charge", "roll")
 
 SCALE_GROUPS = {
-    "player": ("player_idle", 260),
-    "hammer": ("hammer_idle", 260),
-    "bow": ("bow_idle", 260),
     "boss1": ("boss1", 340),
     "boss1b": ("boss1b", 380),
 }
 GROUP_MEMBERS = {
-    "player": ["player_idle", "player_run", "player_attack", "player_swing",
-               "player_guard", "player_roll", "player_charge2", "player_charge3"],
-    "hammer": ["hammer_idle", "hammer_run", "hammer_attack", "hammer_swing",
-               "hammer_guard", "hammer_roll", "hammer_charge2", "hammer_charge3"],
-    "bow": ["bow_idle", "bow_run", "bow_attack", "bow_swing",
-            "bow_guard", "bow_roll", "bow_charge2", "bow_charge3"],
     "boss1": ["boss1", "boss1_attack", "boss1_windup", "boss1_exhausted"]
              + [f"boss1_windup_{k}" for k in BOSS_WINDUPS],
     "boss1b": ["boss1b", "boss1b_attack", "boss1b_exhausted"]
               + [f"boss1b_windup_{k}" for k in BOSS_WINDUPS],
 }
 GROUP_OF = {name: g for g, names in GROUP_MEMBERS.items() for name in names}
-# 転がりだけは正方形で生成しているので占有率をそのまま使えない。固定の高さにする
-FIXED_IN_GROUP = {"player_roll": 210, "hammer_roll": 210, "bow_roll": 210}
 # ボス2は単独なので従来どおり固定の高さで出す
 TARGET_HEIGHT["boss2"] = 340
 
@@ -121,10 +110,7 @@ def process_group(group: str, paths: dict):
     k = ref_h / frac[ref_name]
 
     for name, sprite in cut.items():
-        if name in FIXED_IN_GROUP:
-            _save_sprite(name, sprite, FIXED_IN_GROUP[name])
-        else:
-            _save_sprite(name, sprite, max(1, round(frac[name] * k)))
+        _save_sprite(name, sprite, max(1, round(frac[name] * k)))
 
 
 def process_background(name: str, path: Path):

@@ -452,8 +452,7 @@ function drawPlayer(ctx, player, groundY) {
       break;
     }
     case 'heal':
-      // 専用の絵は無いので、身をかがめるガードの絵を流用する
-      key = playerSpriteKey(player, 'Guard') || key;
+      key = playerSpriteKey(player, 'Heal') || key;
       break;
     case 'lightAttack':
     case 'heavyAttack': {
@@ -471,16 +470,24 @@ function drawPlayer(ctx, player, groundY) {
       rotation = (player.frame / total) * Math.PI * 2 * player.rollDir;
       break;
     }
+    case 'hurt':
+      key = playerSpriteKey(player, 'Hurt') || key;
+      break;
     case 'stagger':
-      key = playerSpriteKey(player, 'Idle') || key;
-      rotation = 0.3 * -player.facing;
+      key = playerSpriteKey(player, 'Stagger') || key;
+      break;
+    case 'dead':
+      // 倒れる専用の絵は無いので、体勢を崩した絵を寝かせて使う
+      key = playerSpriteKey(player, 'Stagger') || key;
+      rotation = 1.15 * -player.facing;
       break;
     case 'walk':
-      key = playerSpriteKey(player, 'Run') || key;
-      bob = Math.abs(Math.sin(player.frame * 0.35)) * 5;
+      // 2枚の歩き絵を交互に出す
+      key = playerSpriteKey(player, player.frame % 16 < 8 ? 'Run' : 'Run2') || key;
+      bob = Math.abs(Math.sin(player.frame * 0.2)) * 2;
       break;
     case 'jump':
-      key = playerSpriteKey(player, 'Run') || key;
+      key = playerSpriteKey(player, 'Jump') || key;
       break;
     case 'idle':
       bob = Math.sin(player.frame * 0.08) * 2;
@@ -491,7 +498,7 @@ function drawPlayer(ctx, player, groundY) {
 
   // パリィ直後は受け止めの絵にする
   if (player.parryFlash > 0) {
-    key = playerSpriteKey(player, 'Guard') || key;
+    key = playerSpriteKey(player, 'Parry') || key;
     rotation = 0;
   }
 
@@ -512,8 +519,8 @@ function drawPlayer(ctx, player, groundY) {
   let alpha = 1;
   if (player.parryFlash > 0) {
     filter = 'brightness(2.4) saturate(0.4)';
-  } else if (player.state === 'hurt' || player.isStaggered) {
-    filter = 'brightness(1.6) sepia(1) saturate(6) hue-rotate(-35deg)';
+  } else if (player.state === 'hurt') {
+    filter = 'brightness(1.25) saturate(1.2)';
   } else if (player.isInvulnerable) {
     // 無敵中は点滅させて分かるようにする
     alpha = player.frame % 8 < 4 ? 0.45 : 0.9;

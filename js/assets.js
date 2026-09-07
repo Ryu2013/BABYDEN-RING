@@ -1,9 +1,11 @@
 // 主人公のスプライトは <接頭辞><ポーズ> というキーで引く。
 // 未生成のポーズは null のままになり、renderer 側で つるぎベイビー の絵に代替される。
-const POSES = ['Idle', 'Run', 'Attack', 'Swing', 'Guard', 'Roll', 'Charge2', 'Charge3'];
+const POSES = ['Idle', 'Run', 'Run2', 'Attack', 'Swing', 'Roll', 'Charge2', 'Charge3',
+               'Parry', 'Jump', 'Heal', 'Hurt', 'Stagger', 'Portrait'];
 const POSE_FILES = {
-  Idle: 'idle', Run: 'run', Attack: 'attack', Swing: 'swing', Guard: 'guard', Roll: 'roll',
-  Charge2: 'charge2', Charge3: 'charge3',
+  Idle: 'idle', Run: 'run', Run2: 'run2', Attack: 'attack', Swing: 'swing', Roll: 'roll',
+  Charge2: 'charge2', Charge3: 'charge3', Parry: 'parry', Jump: 'jump',
+  Heal: 'heal', Hurt: 'hurt', Stagger: 'stagger', Portrait: 'portrait',
 };
 // つるぎベイビーだけは既存の player_*.png をそのまま使う
 const PREFIX_FILES = { sword: 'player', hammer: 'hammer', bow: 'bow' };

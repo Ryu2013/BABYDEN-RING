@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """ローカルのComfyUI(127.0.0.1:8188)経由でゲーム素材を生成する。
 
+主人公3種のポーズは手描きシートから切り出す方式に変えたため、ここでは扱わない
+（tools/split_sheet.py を参照）。ここで生成するのはボスと背景。
+
 使い方:
     # ComfyUIを起動しておく
     #   cd ~/projects/twitter-manga-bot/comfyui/ComfyUI
@@ -83,61 +86,6 @@ BOSS1_BASE = (
 )
 
 ASSETS = {
-    "player_idle": {
-        # 横スクロールで使うので、正面向きにならないよう強めに指定する
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "standing, side view, facing right, sword resting on shoulder, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 832,
-        "height": 1216,
-        "negative_extra": (
-            "looking at viewer, front view, facing viewer, from front, "
-            "multiple views, character sheet, reference sheet, multiple poses"
-        ),
-    },
-    # 移動用。動きのある指定にすると横向きで安定して出る
-    "player_run": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "running, dashing forward, motion, side view, profile, facing right, "
-        "carrying greatsword, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 832,
-        "height": 1216,
-        "negative_extra": "looking at viewer, front view, multiple views, character sheet",
-    },
-    # 攻撃は「振りかぶり」と「振り下ろし」の2枚で1つの動作にする
-    "player_attack": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "side view, facing right, holding greatsword high above head with both hands, "
-        "arms raised straight up, sword vertical pointing up, winding up, leaning back, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 832,
-        "height": 1216,
-        "negative_extra": "multiple views, character sheet, crouching, sword pointing down",
-    },
-    "player_swing": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "side view, facing right, swinging greatsword downward, sword pointing down, "
-        "follow through, motion lines, leaning forward, attacking, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 832,
-        "height": 1216,
-        "negative_extra": "multiple views, character sheet",
-    },
-    "player_roll": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "curled into a ball, rolling, tucked knees, side view, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 1024,
-        "height": 1024,
-    },
-    "player_guard": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "side view, facing right, crouching behind large round shield, defending, " + FLAT_BG,
-        "seed": PLAYER_SEED,
-        "width": 832,
-        "height": 1216,
-    },
     "boss1": {
         "prompt": QUALITY + ", " + BOSS1_BASE
         + "standing still, arms down, facing left, side view, " + FLAT_BG,
@@ -172,92 +120,6 @@ ASSETS = {
         "height": 1024,
     },
     # タイトルロゴの紋章。黒背景のまま出力し、CSSのscreen合成で乗せるので切り抜き不要
-    "hammer_idle": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "standing, side view, facing right, hammer resting on shoulder, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": "looking at viewer, front view, facing viewer, from front, multiple views, character sheet, sword",
-    },
-    "hammer_run": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "running, dashing forward, motion, side view, profile, facing right, "
-        "dragging the heavy hammer, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": "looking at viewer, front view, multiple views, character sheet, sword",
-    },
-    "hammer_attack": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "solo, standing on flat ground, side view, facing right, holding the oversized war hammer "
-        "high above head with both hands, arms raised straight up, hammer head pointing up, "
-        "winding up, leaning back, full body, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "pedestal, box, crate, platform, standing on an object, multiple views, character sheet, crouching, sword",
-    },
-    "hammer_swing": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "standing on both feet, side view, facing right, swinging the war hammer downward, "
-        "hammer head pointing down, follow through, motion lines, leaning forward, attacking, "
-        "full body, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet, sword",
-    },
-    "hammer_guard": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "side view, facing right, crouching behind a large round wooden shield, defending, "
-        "shield held up in front, war hammer on the back, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet, sword",
-    },
-    "hammer_roll": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "curled into a ball, rolling, tucked knees, side view, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 1024, "height": 1024,
-        "negative_extra": "multiple views, character sheet, sword",
-    },
-
-    # --- ゆみベイビー ---
-    "bow_idle": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "standing on both feet, side view, facing right, holding a large wooden longbow "
-        "upright in one hand at his side, bowstring visible, full body, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "looking at viewer, front view, facing viewer, from front, multiple views, character sheet, sword, hammer",
-    },
-    "bow_run": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "running, dashing forward, motion, side view, profile, facing right, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": "looking at viewer, front view, multiple views, character sheet, sword, hammer",
-    },
-    "bow_attack": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "solo, standing on flat ground, side view, facing right, drawing the bowstring of a large "
-        "longbow back to the cheek, single arrow nocked, bow arm extended straight forward, aiming, full body, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet, sword, hammer, crouching",
-    },
-    "bow_swing": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "standing on both feet, side view, facing right, just released the arrow, "
-        "bow arm extended straight forward, drawing hand opened behind the ear, "
-        "motion lines, full body, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet, sword, hammer",
-    },
-    "bow_guard": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "solo, side view, facing right, crouching low behind a small round wooden shield, defending, "
-        "shield held up in front of the body, longbow slung on the back, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet, sword, hammer",
-    },
-    "bow_roll": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "curled into a ball, rolling, tucked knees, side view, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 1024, "height": 1024,
-        "negative_extra": "multiple views, character sheet, sword, hammer",
-    },
-
     "boss1_windup_overhead": {
         "prompt": QUALITY + ", " + BOSS1_BASE
         + "raising both arms straight up high overhead holding them together, about to smash straight down, leaning back, "
@@ -341,61 +203,6 @@ ASSETS = {
         "seed": 424243, "width": 1024, "height": 1024,
         "negative_extra": "multiple views, character sheet, multiple poses, 2girls, background objects",
     },
-    "player_charge2": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
-        "holding the greatsword back with both hands, gathering energy, "
-        "the greatsword glowing with orange light, energy aura, wind swirling around, "
-        "gritted teeth, straining, full body, " + FLAT_BG,
-        "seed": PLAYER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-    "player_charge3": {
-        "prompt": QUALITY + ", " + PLAYER_BASE
-        + "solo, standing on flat ground, side view, facing right, leaning far back, "
-        "holding the greatsword back with both hands at maximum power, "
-        "the greatsword blazing with crimson fire and lightning, huge red energy aura, "
-        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
-        "seed": PLAYER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-    "hammer_charge2": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
-        "holding the war hammer back with both hands, gathering energy, "
-        "the war hammer glowing with orange light, energy aura, wind swirling around, "
-        "gritted teeth, straining, full body, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-    "hammer_charge3": {
-        "prompt": QUALITY + ", " + HAMMER_BASE
-        + "solo, standing on flat ground, side view, facing right, leaning far back, "
-        "holding the war hammer back with both hands at maximum power, "
-        "the war hammer blazing with crimson fire and lightning, huge red energy aura, "
-        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
-        "seed": HAMMER_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-    "bow_charge2": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "solo, standing on flat ground, side view, facing right, crouching slightly, "
-        "holding the longbow back with both hands, gathering energy, "
-        "the longbow glowing with orange light, energy aura, wind swirling around, "
-        "gritted teeth, straining, full body, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-    "bow_charge3": {
-        "prompt": QUALITY + ", " + BOW_BASE
-        + "solo, standing on flat ground, side view, facing right, leaning far back, "
-        "holding the longbow back with both hands at maximum power, "
-        "the longbow blazing with crimson fire and lightning, huge red energy aura, "
-        "screaming, hair blown back, shockwave, full body, " + FLAT_BG,
-        "seed": BOW_SEED, "width": 832, "height": 1216,
-        "negative_extra": POSE_NEG + "multiple views, character sheet",
-    },
-
     "boss1_windup_thrust": {
         "prompt": QUALITY + ", " + BOSS1_BASE
         + "lunging forward low and long, one arm thrust straight ahead like a spear, body stretched out, about to stab, "

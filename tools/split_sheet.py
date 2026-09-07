@@ -46,8 +46,11 @@ def to_rgba(img: Image.Image, opaque: np.ndarray, feather: float = 0.8) -> Image
     return out
 
 
-def split_auto(img: Image.Image, opaque: np.ndarray, merge: int, min_area: int):
-    """繋がっている塊ごとに切り出す。武器などが離れていても merge で束ねる。"""
+def split_auto(img: Image.Image, opaque: np.ndarray, merge: int, min_area: int, min_height: int):
+    """繋がっている塊ごとに切り出す。武器などが離れていても merge で束ねる。
+
+    見出しの文字も塊として拾えてしまうので、背の低いものは落とす。
+    """
     grouped = ndimage.binary_dilation(opaque, iterations=merge) if merge else opaque
     labels, count = ndimage.label(grouped)
 
@@ -55,6 +58,9 @@ def split_auto(img: Image.Image, opaque: np.ndarray, merge: int, min_area: int):
     for i in range(1, count + 1):
         ys, xs = np.nonzero((labels == i) & opaque)
         if len(xs) < min_area:
+            continue
+        h = ys.max() - ys.min() + 1
+        if h < min_height:
             continue
         boxes.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
 
@@ -64,6 +70,64 @@ def split_auto(img: Image.Image, opaque: np.ndarray, merge: int, min_area: int):
         row_h = max(heights) * 0.6
         boxes.sort(key=lambda b: (int(b[1] // row_h), b[0]))
     return boxes
+
+
+def keep_largest(piece: Image.Image, pad: int = 6) -> Image.Image:
+    """1コマの中から本体だけを残す。
+
+    見出しの文字や枠線が一緒に切り出されてしまうので、
+    一番大きな塊と、その外接矩形に触れている塊（武器・エフェクト）だけを残し、
+    離れたところにある塊（本体の上に乗っている見出し文字など）を消す。
+    """
+    alpha = np.asarray(piece.getchannel("A")) > 40
+    if not alpha.any():
+        return piece
+    labels, count = ndimage.label(alpha)
+    if count <= 1:
+        return piece
+
+    slices = ndimage.find_objects(labels)
+    sizes = ndimage.sum(alpha, labels, range(1, count + 1))
+    main = int(np.argmax(sizes)) + 1
+    my, mx = slices[main - 1]
+
+    keep = np.zeros_like(alpha)
+    for i in range(1, count + 1):
+        sy, sx = slices[i - 1]
+        touches = (sx.start <= mx.stop + pad and sx.stop + pad >= mx.start
+                   and sy.start <= my.stop + pad and sy.stop + pad >= my.start)
+        # 見出しは本体より完全に上にある。触れていても落とす
+        above = sy.stop <= my.start + pad
+        if i == main or (touches and not above):
+            keep |= labels == i
+
+    rgb = np.asarray(piece.convert("RGB")).astype(np.int16)
+    for i in range(1, count + 1):
+        if i == main or not keep[labels == i].any():
+            continue
+        sy, sx = slices[i - 1]
+        m = labels == i
+        area = int(m.sum())
+        h = sy.stop - sy.start
+        w = sx.stop - sx.start
+        px = rgb[m]
+        mean = px.mean(axis=0)
+        chroma = float(mean.max() - mean.min())
+        fill = area / max(1, h * w)
+
+        # 見出しの文字: 小さく・薄く・白い（彩度が無い）
+        is_label = area < 4000 and h < 60 and chroma < 20 and mean.mean() > 110
+        # 説明用の枠: 塗りつぶされた無彩色の矩形
+        is_box = fill > 0.92 and chroma < 26 and area > 2000
+
+        if is_label or is_box:
+            keep &= ~m
+
+    out = np.asarray(piece).copy()
+    out[..., 3] = np.where(keep, out[..., 3], 0)
+    cleaned = Image.fromarray(out, "RGBA")
+    bbox = cleaned.getbbox()
+    return cleaned.crop(bbox) if bbox else cleaned
 
 
 def split_grid(img: Image.Image, cols: int, rows: int):
@@ -83,7 +147,9 @@ def main():
     ap.add_argument("--tolerance", type=int, default=TOLERANCE, help="背景とみなす色の許容差")
     ap.add_argument("--merge", type=int, default=6, help="離れた部品を同じ1体にまとめる強さ")
     ap.add_argument("--min-area", type=int, default=1500, help="これより小さい塊は無視する")
+    ap.add_argument("--min-height", type=int, default=0, help="これより背が低い塊は無視する（見出し文字よけ）")
     ap.add_argument("--pad", type=int, default=4)
+    ap.add_argument("--no-clean", action="store_true", help="コマ内の余計な塊（見出し文字など）を消さない")
     args = ap.parse_args()
 
     img = Image.open(args.image)
@@ -95,7 +161,7 @@ def main():
         cols, rows = (int(v) for v in args.grid.lower().split("x"))
         boxes = split_grid(img, cols, rows)
     else:
-        boxes = split_auto(img, opaque, args.merge, args.min_area)
+        boxes = split_auto(img, opaque, args.merge, args.min_area, args.min_height)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -107,6 +173,8 @@ def main():
         bbox = piece.getbbox()
         if bbox:
             piece = piece.crop(bbox)
+        if not args.no_clean:
+            piece = keep_largest(piece)
         if args.names and i < len(args.names):
             name = f"{args.prefix}_{args.names[i]}" if args.prefix else args.names[i]
         else:

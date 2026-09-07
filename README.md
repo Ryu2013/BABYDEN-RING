@@ -179,6 +179,26 @@ combo3: {
 
 `projectile` を持たせれば遠距離攻撃、`unblockable: true` でガード不可、`move: 'away'` で回避行動になる。
 
+## 主人公の絵
+
+3キャラ × 14ポーズ = 42枚。手描きのシート（1枚に全ポーズが同じ縮尺で並んだもの）から `tools/split_sheet.py` で切り出している。同じ縮尺で描かれているので、待機ポーズを基準に1つの倍率をかけるだけでポーズ間の大きさが揃う。
+
+| ポーズ | 使われる場面 |
+| --- | --- |
+| portrait | 生まれの選択画面（正面向き） |
+| idle | 待機 |
+| run / run2 | 歩き（2枚を交互に出す） |
+| attack / swing | 攻撃の振りかぶり / 振り抜き |
+| charge2 / charge3 | 溜めLv2 / Lv3 |
+| roll | ロール |
+| jump | ジャンプ |
+| parry | パリィ成功 |
+| heal | エスト瓶を飲む |
+| hurt | 被弾 |
+| stagger | 体勢崩し（死亡時は倒れた向きで流用） |
+
+溜めの段階がキャラごとに違うため、`bow_charge2` `bow_charge3` `player_charge3` は現状の設定では使われない。
+
 ## 素材の生成
 
 ローカルのComfyUIを使う。先にサーバーを起動しておく。
@@ -205,7 +225,7 @@ python3 tools/gen_assets.py bow_idle        # 一部だけ作り直す
 ~/projects/twitter-manga-bot/comfyui/ComfyUI/.venv/bin/python tools/make_logo.py
 ```
 
-手描きや外部で用意した「複数モーションが1枚に並んだ絵」を取り込む場合は `tools/split_sheet.py` を使う。背景を抜いて1体ずつに切り分ける。
+ここで生成するのはボスと背景。主人公のポーズは手描きシートから切り出す（`tools/split_sheet.py`）。背景を抜いて1体ずつに切り分け、見出しの文字や枠は自動で除去する。
 
 ```bash
 # 自動分割（繋がっている塊を1体とみなす）。左から順に名前を割り当てられる
